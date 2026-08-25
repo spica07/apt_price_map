@@ -15,7 +15,7 @@
     { key: 'jeonse', label: '전세', field: 'jeonse', metricField: 'avgDepositPerPyeong', metricLabel: '평당 보증금' },
     { key: 'wolse', label: '월세', field: 'wolse', metricField: 'avgDepositPerPyeong', metricLabel: '평당 보증금' }
   ];
-  var state = { mode: 'sale' };
+  var state = { mode: 'sale', q: '', gu: '', dong: '' };
 
   function modeInfo(key) {
     for (var i = 0; i < MODES.length; i++) if (MODES[i].key === key) return MODES[i];
@@ -43,6 +43,59 @@
   function hasActiveFilter() {
     return filters.priceMin != null || filters.priceMax != null ||
            filters.areaMin != null || filters.areaMax != null;
+  }
+
+  /* ---------- 검색 · 자치구 · 동 ---------- */
+  function matchesSearchAndGu(complex) {
+    if (state.gu && complex.gu !== state.gu) return false;
+    if (state.dong && complex.dong !== state.dong) return false;
+    if (state.q) {
+      var q = state.q;
+      if (complex.name.indexOf(q) === -1 && complex.dong.indexOf(q) === -1 &&
+          complex.gu.indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+
+  function korSort(a, b) { return a.localeCompare(b, 'ko'); }
+
+  function fillSelect(sel, placeholder, values) {
+    sel.innerHTML = '';
+    var opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = placeholder;
+    sel.appendChild(opt0);
+    values.forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    });
+  }
+
+  function buildGuSelect() {
+    var guSet = {};
+    for (var i = 0; i < ROWS.length; i++) guSet[ROWS[i].gu] = true;
+    var gus = Object.keys(guSet).sort(korSort);
+    fillSelect(document.getElementById('guSelect'), '전체 자치구', gus);
+  }
+
+  /* 선택된 자치구 안의 동 목록으로 동 select를 다시 채운다.
+     자치구를 고르지 않았으면(전체) 동은 고를 수 없게 비활성화한다 —
+     동 이름이 자치구마다 겹쳐서 자치구 없이 고르면 뜻이 애매해진다. */
+  function rebuildDongSelect(gu) {
+    var dongSel = document.getElementById('dongSelect');
+    if (!gu) {
+      fillSelect(dongSel, '전체 동', []);
+      dongSel.disabled = true;
+      return;
+    }
+    var dongSet = {};
+    for (var i = 0; i < ROWS.length; i++) {
+      if (ROWS[i].gu === gu) dongSet[ROWS[i].dong] = true;
+    }
+    fillSelect(dongSel, '전체 동', Object.keys(dongSet).sort(korSort));
+    dongSel.disabled = false;
   }
 
   /* 매매는 거래가, 전세·월세는 보증금을 "가격"으로 본다 */
@@ -197,6 +250,7 @@
       var complex = ROWS[i];
       var entry = complex[info.field];
       if (!entry) continue;
+      if (!matchesSearchAndGu(complex)) continue;
       var deal = null;
       if (active) {
         deal = matchingDeal(entry, state.mode);
@@ -317,10 +371,38 @@
     });
   });
 
+  var searchTimer = null;
+  document.getElementById('searchInput').addEventListener('input', function (e) {
+    clearTimeout(searchTimer);
+    var q = e.target.value;
+    searchTimer = setTimeout(function () {
+      state.q = q.trim();
+      render();
+    }, 250);
+  });
+
+  document.getElementById('guSelect').addEventListener('change', function (e) {
+    state.gu = e.target.value;
+    state.dong = '';
+    rebuildDongSelect(state.gu);
+    render();
+  });
+
+  document.getElementById('dongSelect').addEventListener('change', function (e) {
+    state.dong = e.target.value;
+    render();
+  });
+
   document.getElementById('filterResetBtn').addEventListener('click', function () {
     ['priceMin', 'priceMax', 'areaMin', 'areaMax'].forEach(function (id) {
       document.getElementById(id).value = '';
     });
+    document.getElementById('searchInput').value = '';
+    document.getElementById('guSelect').value = '';
+    state.q = '';
+    state.gu = '';
+    state.dong = '';
+    rebuildDongSelect('');
     readFilters();
     render();
   });
@@ -329,6 +411,7 @@
   document.getElementById('totalCount').textContent = (META.total || ROWS.length).toLocaleString();
   document.getElementById('genDate').textContent = META.generatedAt || '';
   buildModeToggle();
+  buildGuSelect();
   render();
 
   /* PWA: 서비스 워커 등록 */

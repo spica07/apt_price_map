@@ -163,6 +163,33 @@ body {
 .pill.active { background: var(--sign); border-color: var(--sign); color: var(--sign-ink); }
 .mode-count { margin-left: auto; font-size: var(--fs-s); color: var(--ink-muted); }
 
+/* ---------- 검색 · 자치구 ---------- */
+.search-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.search-input {
+  flex: 1 1 220px;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  color: var(--ink);
+  background: var(--panel);
+}
+.search-input::-webkit-search-cancel-button { cursor: pointer; }
+.gu-select {
+  flex: 0 0 auto;
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  color: var(--ink);
+  background: var(--panel);
+}
+.gu-select:disabled { color: var(--ink-muted); background: var(--bg); cursor: not-allowed; }
+
 /* ---------- 필터(가격·면적) ---------- */
 .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
 .filter-field { display: flex; align-items: center; gap: 6px; font-size: var(--fs-s); color: var(--ink-muted); }

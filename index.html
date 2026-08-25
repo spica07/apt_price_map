@@ -48,6 +48,15 @@
       <div class="mode-toggle" id="modeToggle"></div>
       <span class="mode-count" id="modeCount"></span>
     </div>
+    <div class="search-row">
+      <input type="search" id="searchInput" class="search-input" placeholder="단지명이나 동으로 검색해 보세요" autocomplete="off">
+      <select id="guSelect" class="gu-select" aria-label="자치구 선택">
+        <option value="">전체 자치구</option>
+      </select>
+      <select id="dongSelect" class="gu-select" aria-label="동 선택" disabled>
+        <option value="">전체 동</option>
+      </select>
+    </div>
     <div class="filter-row">
       <label class="filter-field">
         <span class="filter-lbl">가격(억)</span>
