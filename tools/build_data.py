@@ -15,7 +15,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = Path(__file__).resolve().parent.parent
 TOOLS = ROOT / "tools"
 OUT = ROOT / "assets" / "js" / "data.js"
-MAX_DEALS = 20  # 팝업에 보여줄 최근 거래 상한
+DEALS_DIR = ROOT / "assets" / "data" / "deals"
+MAX_DEALS = 20  # data.js(지도·목록)에 넣는 최근 거래 상한 — 전체 내역은 DEALS_DIR에 따로 둔다
 
 
 def _to_int(value):
@@ -51,7 +52,7 @@ def aggregate_sale(rows):
                     "area": float(r["ARCH_AREA"]),
                     "floor": _to_int(r.get("FLR")),
                 }
-                for r in group[:MAX_DEALS]
+                for r in group
             ],
         }
     return out
@@ -85,8 +86,9 @@ def aggregate_rent(rows, rent_se):
                     "rent": int(float(r["RTFE"])),
                     "area": float(r["RENT_AREA"]),
                     "floor": _to_int(r.get("FLR")),
+                    "renewed": r.get("NEW_UPDT_YN") == "갱신",
                 }
-                for r in group[:MAX_DEALS]
+                for r in group
             ],
         }
     return out
@@ -139,6 +141,27 @@ def build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache):
     return complexes, skipped
 
 
+def split_full_and_capped(complexes, max_deals):
+    """단지별 {sale,jeonse,wolse} 전체 거래(파일로 저장)와, data.js에 넣을
+    최근 max_deals건짜리 얕은 복사본을 나눈다. aggregate_sale/aggregate_rent가
+    이미 최신순으로 정렬해 뒀으므로 앞에서 자르면 최근 것부터 남는다."""
+    full_by_idx = []
+    capped = []
+    for c in complexes:
+        full = {}
+        capped_c = dict(c)
+        for mode in ("sale", "jeonse", "wolse"):
+            entry = c[mode]
+            full[mode] = entry["deals"] if entry else []
+            if entry:
+                capped_entry = dict(entry)
+                capped_entry["deals"] = entry["deals"][:max_deals]
+                capped_c[mode] = capped_entry
+        full_by_idx.append(full)
+        capped.append(capped_c)
+    return full_by_idx, capped
+
+
 def main():
     sale_rows = json.loads((TOOLS / "sale_raw.json").read_text(encoding="utf-8"))
     rent_rows = json.loads((TOOLS / "rent_raw.json").read_text(encoding="utf-8"))
@@ -158,11 +181,23 @@ def main():
         n = sum(1 for c in complexes if c[field])
         print(f"  {label} 데이터 있는 단지: {n:,}개")
 
+    full_by_idx, capped = split_full_and_capped(complexes, MAX_DEALS)
+
+    DEALS_DIR.mkdir(parents=True, exist_ok=True)
+    for old in DEALS_DIR.glob("*.json"):
+        old.unlink()  # 단지 순서가 바뀌면 옛 idx 파일이 엉뚱한 단지를 가리키므로 매번 싹 지우고 새로 쓴다
+    for i, full in enumerate(full_by_idx):
+        (DEALS_DIR / f"{i}.json").write_text(
+            json.dumps(full, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+        )
+    total_deals = sum(len(f["sale"]) + len(f["jeonse"]) + len(f["wolse"]) for f in full_by_idx)
+    print(f"단지별 전체 거래 파일 {len(full_by_idx):,}개 저장 (거래 {total_deals:,}건) -> {DEALS_DIR}")
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    meta_out = {"generatedAt": date.today().isoformat(), "total": len(complexes)}
+    meta_out = {"generatedAt": date.today().isoformat(), "total": len(capped)}
     js = (
         "/* 서울 아파트 실거래가 데이터 — 자동 생성 파일 */\n"
-        "window.APT_COMPLEXES = " + json.dumps(complexes, ensure_ascii=False, separators=(",", ":")) + ";\n"
+        "window.APT_COMPLEXES = " + json.dumps(capped, ensure_ascii=False, separators=(",", ":")) + ";\n"
         "window.DATA_META = " + json.dumps(meta_out, ensure_ascii=False, separators=(",", ":")) + ";\n"
     )
     OUT.write_text(js, encoding="utf-8")

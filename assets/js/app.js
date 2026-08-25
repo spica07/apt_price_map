@@ -216,8 +216,9 @@
           ' · ' + d.area.toFixed(1) + '㎡ · ' + d.floor + '층</li>';
       }
       var rentPart = d.rent > 0 ? ' · 월세 ' + esc(formatWon(d.rent)) : '';
+      var renewTag = '<span class="deal-tag ' + (d.renewed ? 'renew">갱신' : 'new">신규') + '</span>';
       return '<li>' + esc(formatDate(d.date)) + ' · 보증금 ' + esc(formatWon(d.deposit)) +
-        rentPart + ' · ' + d.area.toFixed(1) + '㎡ · ' + d.floor + '층</li>';
+        rentPart + ' · ' + d.area.toFixed(1) + '㎡ · ' + d.floor + '층 ' + renewTag + '</li>';
     });
     var more = entry.count > shown.length
       ? '<p class="popup-more">최근 ' + shown.length + '건 표시 · 전체 ' + entry.count.toLocaleString() + '건</p>'
@@ -300,6 +301,7 @@
       '<div class="cc-meta">' + esc(c.gu) + ' ' + esc(c.dong) + '</div>' +
       '<div class="cc-price">' + priceLine + '</div>' +
       '<div class="cc-sub">' + esc(info.metricLabel) + ' ' + esc(formatWon(entry[info.metricField])) + '</div>' +
+      '<a class="cc-detail-link" href="detail.html?idx=' + item.idx + '">상세보기 — 매매·전세·월세 모두 보기</a>' +
       '</article>';
   }
 

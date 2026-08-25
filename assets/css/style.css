@@ -271,6 +271,15 @@ body {
 .cc-meta { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
 .cc-price { font-size: var(--fs-m); font-weight: 600; color: var(--sign); margin-top: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
 .cc-sub { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
+.cc-detail-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: var(--fs-s);
+  font-weight: 600;
+  color: var(--sign);
+  text-decoration: none;
+}
+.cc-detail-link:hover { text-decoration: underline; }
 
 .map-legend {
   position: absolute;
@@ -308,6 +317,17 @@ body {
 .popup-deals li { padding: 3px 0; border-top: 1px solid var(--line); }
 .popup-deals li:first-child { border-top: none; }
 .popup-more { margin-top: 6px; font-size: var(--fs-s); color: var(--ink-muted); }
+.deal-tag {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.deal-tag.new { background: var(--sign-wash); color: var(--sign); }
+.deal-tag.renew { background: var(--ink); color: #fff; opacity: .72; }
 
 /* ---------- 독도 ---------- */
 .dokdo-label {

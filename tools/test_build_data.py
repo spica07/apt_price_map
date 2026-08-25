@@ -19,10 +19,10 @@ SALE_ROWS = [
 RENT_ROWS = [
     {"CGG_NM": "서초구", "STDG_NM": "서초동", "MNO": "1682", "SNO": "0000",
      "BLDG_NM": "서초래미안", "CTRT_DAY": "20260717", "RENT_SE": "월세",
-     "RENT_AREA": "127.66", "GRFE": "80000", "RTFE": "203"},
+     "RENT_AREA": "127.66", "GRFE": "80000", "RTFE": "203", "NEW_UPDT_YN": "갱신"},
     {"CGG_NM": "강동구", "STDG_NM": "상일동", "MNO": "0521", "SNO": "0000",
      "BLDG_NM": "고덕자이", "CTRT_DAY": "20260629", "RENT_SE": "전세",
-     "RENT_AREA": "59.939", "GRFE": "73000", "RTFE": "0"},
+     "RENT_AREA": "59.939", "GRFE": "73000", "RTFE": "0", "NEW_UPDT_YN": "신규"},
 ]
 
 
@@ -43,6 +43,34 @@ def test_aggregate_rent_splits_jeonse_and_wolse():
     assert "강동구|상일동|0521|0000" not in wolse
     assert "서초구|서초동|1682|0000" in wolse
     assert wolse["서초구|서초동|1682|0000"]["latestRent"] == 203.0
+    assert wolse["서초구|서초동|1682|0000"]["deals"][0]["renewed"] is True
+    assert jeonse["강동구|상일동|0521|0000"]["deals"][0]["renewed"] is False
+
+
+def test_aggregate_sale_does_not_cap_deals():
+    many_rows = [
+        {"CGG_NM": "강남구", "STDG_NM": "역삼동", "MNO": "0001", "SNO": "0000",
+         "BLDG_NM": "테스트", "CTRT_DAY": "202601" + str(i + 1).zfill(2), "THING_AMT": "10000",
+         "ARCH_AREA": "84.0", "FLR": "1"}
+        for i in range(25)
+    ]
+    result = build_data.aggregate_sale(many_rows)
+    key = "강남구|역삼동|0001|0000"
+    assert result[key]["count"] == 25
+    assert len(result[key]["deals"]) == 25  # MAX_DEALS(20)로 잘리지 않는다 — 상세페이지 전체 내역용
+
+
+def test_split_full_and_capped_caps_data_js_but_keeps_full_file():
+    sale_agg = build_data.aggregate_sale(SALE_ROWS)
+    meta = build_data.collect_meta(SALE_ROWS, [])
+    cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
+    complexes, _ = build_data.build_complexes(sale_agg, {}, {}, meta, cache)
+    full_by_idx, capped = build_data.split_full_and_capped(complexes, max_deals=1)
+    assert len(capped[0]["sale"]["deals"]) == 1
+    assert len(full_by_idx[0]["sale"]) == 2
+    assert full_by_idx[0]["jeonse"] == []
+    assert full_by_idx[0]["wolse"] == []
+    assert len(complexes[0]["sale"]["deals"]) == 2  # 원본은 그대로 — capped가 훼손하지 않는다
 
 
 def test_build_complexes_skips_missing_geocode():
@@ -79,7 +107,9 @@ def test_build_complexes_includes_geocoded():
 if __name__ == "__main__":
     test_aggregate_sale_groups_by_parcel_and_sorts_latest_first()
     test_aggregate_rent_splits_jeonse_and_wolse()
+    test_aggregate_sale_does_not_cap_deals()
+    test_split_full_and_capped_caps_data_js_but_keeps_full_file()
     test_build_complexes_skips_missing_geocode()
     test_build_complexes_skips_key_missing_from_meta_without_crashing()
     test_build_complexes_includes_geocoded()
-    print("OK: build_data.py 5개 테스트 통과")
+    print("OK: build_data.py 7개 테스트 통과")
