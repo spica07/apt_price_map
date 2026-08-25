@@ -6,12 +6,14 @@
  *
  * 콘텐츠를 크게 바꾸면 CACHE 버전 숫자를 올려서 옛 캐시를 비운다.
  */
-/* v6: 단지 상세 페이지(detail.html, 전체 거래 더보기) 추가, 전월세 거래
+/* v7: "더 보기" 버튼(.list-more-btn)이 padding 없이 폭도 안 잡혀 상세
+   페이지에서 거의 안 보이던 문제를 고쳐 style.css가 바뀌었다.
+   v6: 단지 상세 페이지(detail.html, 전체 거래 더보기) 추가, 전월세 거래
    목록에 신규/갱신 표시 추가로 index.html/app.js/style.css와
    data.js(재수집) + assets/data/deals/*.json가 바뀌었다.
    v5: 필터 접이식 전환 + 단지 목록 더보기. v4: 리포트 동별 초고가 표.
    v3: 검색·자치구·동 필터. v2: 가격·면적 필터와 단지 목록 패널. */
-const CACHE = 'apt-price-map-cache-v6';
+const CACHE = 'apt-price-map-cache-v7';
 
 /* data.js 는 일부러 뺐다 — 16.6MB라 addAll 이 실패하면 설치 자체가 무산된다.
    아래 stale-while-revalidate 가 첫 조회 때 알아서 캐시에 넣는다. */

@@ -246,18 +246,24 @@ body {
 .complex-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .list-empty { padding: 16px 4px; font-size: var(--fs-s); color: var(--ink-muted); }
 .list-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
   min-height: var(--tap);
+  width: 100%;
   margin-top: 8px;
+  padding: 0 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   color: var(--ink);
   font-family: inherit;
   font-size: var(--fs-s);
+  font-weight: 600;
   cursor: pointer;
 }
-.list-more-btn:hover { border-color: var(--sign); color: var(--sign); }
+.list-more-btn:hover { border-color: var(--sign); color: var(--sign); background: var(--sign-wash); }
 
 .complex-card {
   border: 1px solid var(--line);
