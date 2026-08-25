@@ -28,7 +28,10 @@
      단지에는 대표 면적이 없다 — 최근 거래(최대 20건) 각각에 가격·면적이
      있을 뿐이다. 그래서 "조건에 맞는 거래가 하나라도 있는 단지"를 통과시킨다
      (가격·면적 둘 다 만족하는 한 건이 있어야 한다 — 실제 매물 검색과 같은 방식). */
-  var filters = { priceMin: null, priceMax: null, areaMin: null, areaMax: null };
+  var filters = {
+    priceMin: null, priceMax: null, areaMin: null, areaMax: null,
+    ratioMin: null, ratioMax: null
+  };
 
   function parseNum(el) {
     var v = parseFloat(el.value);
@@ -40,6 +43,8 @@
     filters.priceMax = parseNum(document.getElementById('priceMax'));
     filters.areaMin = parseNum(document.getElementById('areaMin'));
     filters.areaMax = parseNum(document.getElementById('areaMax'));
+    filters.ratioMin = parseNum(document.getElementById('ratioMin'));
+    filters.ratioMax = parseNum(document.getElementById('ratioMax'));
   }
 
   function hasActiveFilter() {
@@ -47,10 +52,17 @@
            filters.areaMin != null || filters.areaMax != null;
   }
 
-  /* ---------- 검색 · 자치구 · 동 ---------- */
+  /* ---------- 검색 · 자치구 · 동 · 전세가율 ----------
+     전세가율(jeonseRatio2026)은 거래 한 건이 아니라 단지 전체의 2026년
+     통계라, 가격·면적처럼 거래 단위로 걸지 않고 여기서 단지 단위로 건다.
+     현재 보고 있는 모드(매매/전세/월세)와 무관하게 항상 적용된다. */
   function matchesSearchAndGu(complex) {
     if (state.gu && complex.gu !== state.gu) return false;
     if (state.dong && complex.dong !== state.dong) return false;
+    if (filters.ratioMin != null &&
+        (complex.jeonseRatio2026 == null || complex.jeonseRatio2026 < filters.ratioMin)) return false;
+    if (filters.ratioMax != null &&
+        (complex.jeonseRatio2026 == null || complex.jeonseRatio2026 > filters.ratioMax)) return false;
     if (state.q) {
       var q = state.q;
       if (complex.name.indexOf(q) === -1 && complex.dong.indexOf(q) === -1 &&
@@ -296,11 +308,15 @@
           ? '최근 ' + esc(formatWon(entry.latestPrice))
           : '최근 보증금 ' + esc(formatWon(entry.latestDeposit)) +
             (entry.latestRent > 0 ? ' · 월세 ' + esc(formatWon(entry.latestRent)) : ''));
+    var ratioLine = c.jeonseRatio2026 != null
+      ? '<div class="cc-ratio">2026년 전세가율 ' + c.jeonseRatio2026 + '%</div>'
+      : '';
     return '<article class="complex-card" data-idx="' + item.idx + '">' +
       '<div class="cc-name">' + esc(c.name) + '</div>' +
       '<div class="cc-meta">' + esc(c.gu) + ' ' + esc(c.dong) + '</div>' +
       '<div class="cc-price">' + priceLine + '</div>' +
       '<div class="cc-sub">' + esc(info.metricLabel) + ' ' + esc(formatWon(entry[info.metricField])) + '</div>' +
+      ratioLine +
       '<a class="cc-detail-link" href="detail.html?idx=' + item.idx + '">상세보기 — 매매·전세·월세 모두 보기</a>' +
       '</article>';
   }
@@ -375,7 +391,7 @@
 
   /* ---------- 필터 입력 ---------- */
   var filterTimer = null;
-  ['priceMin', 'priceMax', 'areaMin', 'areaMax'].forEach(function (id) {
+  ['priceMin', 'priceMax', 'areaMin', 'areaMax', 'ratioMin', 'ratioMax'].forEach(function (id) {
     document.getElementById(id).addEventListener('input', function () {
       clearTimeout(filterTimer);
       filterTimer = setTimeout(function () {
@@ -408,7 +424,7 @@
   });
 
   document.getElementById('filterResetBtn').addEventListener('click', function () {
-    ['priceMin', 'priceMax', 'areaMin', 'areaMax'].forEach(function (id) {
+    ['priceMin', 'priceMax', 'areaMin', 'areaMax', 'ratioMin', 'ratioMax'].forEach(function (id) {
       document.getElementById(id).value = '';
     });
     document.getElementById('searchInput').value = '';

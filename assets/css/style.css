@@ -277,6 +277,7 @@ body {
 .cc-meta { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
 .cc-price { font-size: var(--fs-m); font-weight: 600; color: var(--sign); margin-top: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
 .cc-sub { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
+.cc-ratio { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
 .cc-detail-link {
   display: inline-block;
   margin-top: 8px;

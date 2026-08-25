@@ -60,6 +60,34 @@ def test_aggregate_sale_does_not_cap_deals():
     assert len(result[key]["deals"]) == 25  # MAX_DEALS(20)로 잘리지 않는다 — 상세페이지 전체 내역용
 
 
+def test_aggregate_sale_avg_2026_only_uses_2026_deals():
+    rows = [
+        {"CGG_NM": "강남구", "STDG_NM": "역삼동", "MNO": "0001", "SNO": "0000",
+         "BLDG_NM": "테스트", "CTRT_DAY": "20251231", "THING_AMT": "10000", "ARCH_AREA": "33.058", "FLR": "1"},
+        {"CGG_NM": "강남구", "STDG_NM": "역삼동", "MNO": "0001", "SNO": "0000",
+         "BLDG_NM": "테스트", "CTRT_DAY": "20260101", "THING_AMT": "20000", "ARCH_AREA": "33.058", "FLR": "1"},
+    ]
+    result = build_data.aggregate_sale(rows)
+    key = "강남구|역삼동|0001|0000"
+    # 33.058㎡ = 정확히 10평. 2025년 1000/평 + 2026년 2000/평.
+    assert result[key]["avgPricePerPyeong"] == 1500
+    assert result[key]["avgPricePerPyeong2026"] == 2000  # 2026년 거래 한 건만 반영
+
+
+def test_jeonse_ratio_2026_computed_when_both_present():
+    sale_entry = {"avgPricePerPyeong2026": 2000}
+    jeonse_entry = {"avgDepositPerPyeong2026": 1400}
+    assert build_data.jeonse_ratio_2026(sale_entry, jeonse_entry) == 70
+
+
+def test_jeonse_ratio_2026_none_when_either_side_missing():
+    assert build_data.jeonse_ratio_2026(None, {"avgDepositPerPyeong2026": 1000}) is None
+    assert build_data.jeonse_ratio_2026({"avgPricePerPyeong2026": 1000}, None) is None
+    assert build_data.jeonse_ratio_2026(
+        {"avgPricePerPyeong2026": None}, {"avgDepositPerPyeong2026": 1000}
+    ) is None
+
+
 def test_split_full_and_capped_caps_data_js_but_keeps_full_file():
     sale_agg = build_data.aggregate_sale(SALE_ROWS)
     meta = build_data.collect_meta(SALE_ROWS, [])
@@ -102,14 +130,34 @@ def test_build_complexes_includes_geocoded():
     assert complexes[0]["sale"]["count"] == 2
     assert complexes[0]["jeonse"] is None
     assert complexes[0]["wolse"] is None
+    assert complexes[0]["jeonseRatio2026"] is None  # 전세 데이터가 없으니 계산 못 한다
+
+
+def test_build_complexes_computes_jeonse_ratio_when_both_modes_present():
+    same_parcel_jeonse = [
+        {"CGG_NM": "노원구", "STDG_NM": "상계동", "MNO": "0173", "SNO": "0001",
+         "BLDG_NM": "벽산", "CTRT_DAY": "20260815", "RENT_SE": "전세",
+         "RENT_AREA": "59.9", "GRFE": "40000", "RTFE": "0", "NEW_UPDT_YN": "신규"},
+    ]
+    sale_agg = build_data.aggregate_sale(SALE_ROWS)
+    jeonse_agg = build_data.aggregate_rent(same_parcel_jeonse, "전세")
+    meta = build_data.collect_meta(SALE_ROWS, same_parcel_jeonse)
+    cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
+    complexes, _ = build_data.build_complexes(sale_agg, jeonse_agg, {}, meta, cache)
+    assert complexes[0]["jeonseRatio2026"] is not None
+    assert 0 < complexes[0]["jeonseRatio2026"] < 100
 
 
 if __name__ == "__main__":
     test_aggregate_sale_groups_by_parcel_and_sorts_latest_first()
     test_aggregate_rent_splits_jeonse_and_wolse()
     test_aggregate_sale_does_not_cap_deals()
+    test_aggregate_sale_avg_2026_only_uses_2026_deals()
+    test_jeonse_ratio_2026_computed_when_both_present()
+    test_jeonse_ratio_2026_none_when_either_side_missing()
     test_split_full_and_capped_caps_data_js_but_keeps_full_file()
     test_build_complexes_skips_missing_geocode()
     test_build_complexes_skips_key_missing_from_meta_without_crashing()
     test_build_complexes_includes_geocoded()
-    print("OK: build_data.py 7개 테스트 통과")
+    test_build_complexes_computes_jeonse_ratio_when_both_modes_present()
+    print("OK: build_data.py 11개 테스트 통과")

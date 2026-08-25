@@ -26,6 +26,17 @@ def _to_int(value):
     return int(float(value))
 
 
+def _avg_price_per_pyeong_for_year(rows, amount_field, area_field, year):
+    """rows 중 계약일(CTRT_DAY)이 year로 시작하는 것만 골라 평당가(또는
+    평당 보증금) 평균을 낸다. 해당 연도 거래가 없으면 None."""
+    values = [
+        p for r in rows
+        if r["CTRT_DAY"].startswith(year)
+        and (p := common.price_per_pyeong(float(r[amount_field]), float(r[area_field]))) is not None
+    ]
+    return round(sum(values) / len(values)) if values else None
+
+
 def aggregate_sale(rows):
     """단지(지번) 키로 매매 거래를 모은다."""
     by_key = {}
@@ -43,6 +54,7 @@ def aggregate_sale(rows):
         out[key] = {
             "count": len(group),
             "avgPricePerPyeong": round(sum(prices) / len(prices)) if prices else None,
+            "avgPricePerPyeong2026": _avg_price_per_pyeong_for_year(group, "THING_AMT", "ARCH_AREA", "2026"),
             "latestPrice": int(float(latest["THING_AMT"])),
             "latestDate": latest["CTRT_DAY"],
             "deals": [
@@ -76,6 +88,7 @@ def aggregate_rent(rows, rent_se):
         out[key] = {
             "count": len(group),
             "avgDepositPerPyeong": round(sum(deposits) / len(deposits)) if deposits else None,
+            "avgDepositPerPyeong2026": _avg_price_per_pyeong_for_year(group, "GRFE", "RENT_AREA", "2026"),
             "latestDeposit": int(float(latest["GRFE"])),
             "latestRent": int(float(latest["RTFE"])),
             "latestDate": latest["CTRT_DAY"],
@@ -114,6 +127,18 @@ def collect_meta(*row_lists):
     }
 
 
+def jeonse_ratio_2026(sale_entry, jeonse_entry):
+    """2026년 평당 매매가 대비 평당 전세가(전세가율, %). 둘 다 2026년
+    거래가 있어야 계산할 수 있다 — 한쪽이라도 없으면 None."""
+    if not sale_entry or not jeonse_entry:
+        return None
+    sale_2026 = sale_entry.get("avgPricePerPyeong2026")
+    jeonse_2026 = jeonse_entry.get("avgDepositPerPyeong2026")
+    if not sale_2026 or not jeonse_2026:
+        return None
+    return round(jeonse_2026 / sale_2026 * 100)
+
+
 def build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache):
     keys = set(sale_agg) | set(jeonse_agg) | set(wolse_agg)
     complexes = []
@@ -128,15 +153,18 @@ def build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache):
             skipped += 1
             continue
         gu, dong, name = entry
+        sale_entry = sale_agg.get(key)
+        jeonse_entry = jeonse_agg.get(key)
         complexes.append({
             "gu": gu,
             "dong": dong,
             "name": name,
             "lat": round(geo["lat"], 6),
             "lng": round(geo["lng"], 6),
-            "sale": sale_agg.get(key),
-            "jeonse": jeonse_agg.get(key),
+            "sale": sale_entry,
+            "jeonse": jeonse_entry,
             "wolse": wolse_agg.get(key),
+            "jeonseRatio2026": jeonse_ratio_2026(sale_entry, jeonse_entry),
         })
     return complexes, skipped
 
