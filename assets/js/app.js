@@ -16,6 +16,8 @@
     { key: 'wolse', label: '월세', field: 'wolse', metricField: 'avgDepositPerPyeong', metricLabel: '평당 보증금' }
   ];
   var state = { mode: 'sale', q: '', gu: '', dong: '' };
+  var PAGE_SIZE = 30;
+  var renderedCount = PAGE_SIZE;
 
   function modeInfo(key) {
     for (var i = 0; i < MODES.length; i++) if (MODES[i].key === key) return MODES[i];
@@ -275,6 +277,7 @@
       return av - bv;
     });
     document.getElementById('modeCount').textContent = '총 ' + listItems.length.toLocaleString() + '개 단지';
+    renderedCount = PAGE_SIZE;
     renderLegend();
     renderList();
   }
@@ -303,14 +306,23 @@
   function renderList() {
     var wrap = document.getElementById('complexList');
     var empty = document.getElementById('listEmpty');
+    var moreBtn = document.getElementById('listMoreBtn');
     document.getElementById('listCount').textContent = listItems.length.toLocaleString() + '개';
     if (!listItems.length) {
       wrap.innerHTML = '';
       empty.hidden = false;
+      moreBtn.hidden = true;
       return;
     }
     empty.hidden = true;
-    wrap.innerHTML = listItems.map(listCardHtml).join('');
+    var shown = listItems.slice(0, renderedCount);
+    wrap.innerHTML = shown.map(listCardHtml).join('');
+    if (shown.length < listItems.length) {
+      moreBtn.hidden = false;
+      moreBtn.textContent = '더 보기 (' + shown.length.toLocaleString() + ' / ' + listItems.length.toLocaleString() + ')';
+    } else {
+      moreBtn.hidden = true;
+    }
   }
 
   function renderLegend() {
@@ -413,6 +425,23 @@
   buildModeToggle();
   buildGuSelect();
   render();
+
+  document.getElementById('listMoreBtn').addEventListener('click', function () {
+    renderedCount += PAGE_SIZE;
+    renderList();
+  });
+
+  /* ---------- 필터 접기/펴기 ---------- */
+  var filterToggleBtn = document.getElementById('filterToggleBtn');
+  var filterGroups = document.getElementById('filterGroups');
+  filterToggleBtn.addEventListener('click', function () {
+    var willOpen = filterGroups.hidden;
+    filterGroups.hidden = !willOpen;
+    var label = willOpen ? '필터 닫기' : '필터 열기';
+    filterToggleBtn.title = label;
+    filterToggleBtn.setAttribute('aria-label', label);
+    filterToggleBtn.setAttribute('aria-expanded', String(willOpen));
+  });
 
   /* PWA: 서비스 워커 등록 */
   if ('serviceWorker' in navigator) {

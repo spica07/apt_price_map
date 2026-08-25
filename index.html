@@ -47,30 +47,36 @@
     <div class="mode-row">
       <div class="mode-toggle" id="modeToggle"></div>
       <span class="mode-count" id="modeCount"></span>
+      <button class="filter-toggle-btn" id="filterToggleBtn" type="button"
+              title="필터 열기" aria-label="필터 열기" aria-expanded="false">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 9l7 7 7-7"/></svg>
+      </button>
     </div>
-    <div class="search-row">
-      <input type="search" id="searchInput" class="search-input" placeholder="단지명이나 동으로 검색해 보세요" autocomplete="off">
-      <select id="guSelect" class="gu-select" aria-label="자치구 선택">
-        <option value="">전체 자치구</option>
-      </select>
-      <select id="dongSelect" class="gu-select" aria-label="동 선택" disabled>
-        <option value="">전체 동</option>
-      </select>
-    </div>
-    <div class="filter-row">
-      <label class="filter-field">
-        <span class="filter-lbl">가격(억)</span>
-        <input type="number" id="priceMin" placeholder="최소" min="0" inputmode="decimal">
-        <span class="filter-sep">~</span>
-        <input type="number" id="priceMax" placeholder="최대" min="0" inputmode="decimal">
-      </label>
-      <label class="filter-field">
-        <span class="filter-lbl">면적(평)</span>
-        <input type="number" id="areaMin" placeholder="최소" min="0" inputmode="decimal">
-        <span class="filter-sep">~</span>
-        <input type="number" id="areaMax" placeholder="최대" min="0" inputmode="decimal">
-      </label>
-      <button class="pill filter-reset" id="filterResetBtn" type="button">초기화</button>
+    <div class="filter-groups" id="filterGroups" hidden>
+      <div class="search-row">
+        <input type="search" id="searchInput" class="search-input" placeholder="단지명이나 동으로 검색해 보세요" autocomplete="off">
+        <select id="guSelect" class="gu-select" aria-label="자치구 선택">
+          <option value="">전체 자치구</option>
+        </select>
+        <select id="dongSelect" class="gu-select" aria-label="동 선택" disabled>
+          <option value="">전체 동</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <label class="filter-field">
+          <span class="filter-lbl">가격(억)</span>
+          <input type="number" id="priceMin" placeholder="최소" min="0" inputmode="decimal">
+          <span class="filter-sep">~</span>
+          <input type="number" id="priceMax" placeholder="최대" min="0" inputmode="decimal">
+        </label>
+        <label class="filter-field">
+          <span class="filter-lbl">면적(평)</span>
+          <input type="number" id="areaMin" placeholder="최소" min="0" inputmode="decimal">
+          <span class="filter-sep">~</span>
+          <input type="number" id="areaMax" placeholder="최대" min="0" inputmode="decimal">
+        </label>
+        <button class="pill filter-reset" id="filterResetBtn" type="button">초기화</button>
+      </div>
     </div>
   </section>
 
@@ -85,6 +91,7 @@
         <span class="list-count" id="listCount"></span>
       </div>
       <div class="complex-list" id="complexList"></div>
+      <button class="list-more-btn" id="listMoreBtn" type="button" hidden>더 보기</button>
       <p class="list-empty" id="listEmpty" hidden>조건에 맞는 단지가 없어요. 필터를 조정해 보세요.</p>
     </div>
   </section>

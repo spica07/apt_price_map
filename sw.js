@@ -6,9 +6,11 @@
  *
  * 콘텐츠를 크게 바꾸면 CACHE 버전 숫자를 올려서 옛 캐시를 비운다.
  */
-/* v4: 리포트에 2026년 동별 평당 초고가 표를 추가해 report.html/report.js가 바뀌었다.
-   v3: 검색·자치구·동 필터 추가. v2: 가격·면적 필터와 단지 목록 패널 추가. */
-const CACHE = 'apt-price-map-cache-v4';
+/* v5: 필터 패널을 접이식으로 바꾸고 단지 목록에 더보기 페이지네이션을 넣어
+   index.html/app.js/style.css가 또 바뀌었다.
+   v4: 리포트에 2026년 동별 평당 초고가 표 추가. v3: 검색·자치구·동 필터.
+   v2: 가격·면적 필터와 단지 목록 패널. */
+const CACHE = 'apt-price-map-cache-v5';
 
 /* data.js 는 일부러 뺐다 — 16.6MB라 addAll 이 실패하면 설치 자체가 무산된다.
    아래 stale-while-revalidate 가 첫 조회 때 알아서 캐시에 넣는다. */

@@ -163,6 +163,23 @@ body {
 .pill.active { background: var(--sign); border-color: var(--sign); color: var(--sign-ink); }
 .mode-count { margin-left: auto; font-size: var(--fs-s); color: var(--ink-muted); }
 
+.filter-toggle-btn {
+  flex: 0 0 auto;
+  width: var(--tap);
+  height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.filter-toggle-btn[aria-expanded="true"] { transform: rotate(180deg); color: var(--sign); border-color: var(--sign); }
+.filter-groups { margin-top: 10px; }
+
 /* ---------- 검색 · 자치구 ---------- */
 .search-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .search-input {
@@ -228,6 +245,19 @@ body {
 .list-count { font-size: var(--fs-s); color: var(--ink-muted); }
 .complex-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .list-empty { padding: 16px 4px; font-size: var(--fs-s); color: var(--ink-muted); }
+.list-more-btn {
+  flex: 0 0 auto;
+  min-height: var(--tap);
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--fs-s);
+  cursor: pointer;
+}
+.list-more-btn:hover { border-color: var(--sign); color: var(--sign); }
 
 .complex-card {
   border: 1px solid var(--line);
