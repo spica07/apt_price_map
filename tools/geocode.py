@@ -31,9 +31,9 @@ def collect_parcels():
             continue
         rows = json.loads(path.read_text(encoding="utf-8"))
         for row in rows:
-            # 극소수 행은 원본 데이터 자체에 CGG_NM/MNO 등 위치 정보가 비어 있다
+            # 극소수 행은 원본 데이터 자체에 CGG_NM/MNO/SNO 등 위치 정보가 비어 있다
             # (예: rent_raw.json 5건). 지오코딩할 주소를 만들 수 없으니 건너뛴다.
-            if not str(row.get("MNO", "")).strip():
+            if not common.has_lot(row):
                 continue
             key = common.parcel_key(row)
             if key not in parcels:
@@ -65,6 +65,9 @@ def geocode_one(session, cache, key, address):
                 print(f"  ! 요청 실패: {address!r} ({e})")
                 return None
             time.sleep(0.5)
+    else:
+        print(f"  ! 레이트리밋 소진: {address!r}")
+        return None
 
     cache[key] = hit
     return hit

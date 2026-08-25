@@ -18,6 +18,13 @@ OUT = ROOT / "assets" / "js" / "data.js"
 MAX_DEALS = 20  # 팝업에 보여줄 최근 거래 상한
 
 
+def _to_int(value):
+    """층수처럼 정수값인데 원본에서 float/문자열로 올 수 있는 필드를 int로 통일한다."""
+    if value in (None, ""):
+        return value
+    return int(float(value))
+
+
 def aggregate_sale(rows):
     """단지(지번) 키로 매매 거래를 모은다."""
     by_key = {}
@@ -35,14 +42,14 @@ def aggregate_sale(rows):
         out[key] = {
             "count": len(group),
             "avgPricePerPyeong": round(sum(prices) / len(prices)) if prices else None,
-            "latestPrice": float(latest["THING_AMT"]),
+            "latestPrice": int(float(latest["THING_AMT"])),
             "latestDate": latest["CTRT_DAY"],
             "deals": [
                 {
                     "date": r["CTRT_DAY"],
-                    "price": float(r["THING_AMT"]),
+                    "price": int(float(r["THING_AMT"])),
                     "area": float(r["ARCH_AREA"]),
-                    "floor": r.get("FLR"),
+                    "floor": _to_int(r.get("FLR")),
                 }
                 for r in group[:MAX_DEALS]
             ],
@@ -68,16 +75,16 @@ def aggregate_rent(rows, rent_se):
         out[key] = {
             "count": len(group),
             "avgDepositPerPyeong": round(sum(deposits) / len(deposits)) if deposits else None,
-            "latestDeposit": float(latest["GRFE"]),
-            "latestRent": float(latest["RTFE"]),
+            "latestDeposit": int(float(latest["GRFE"])),
+            "latestRent": int(float(latest["RTFE"])),
             "latestDate": latest["CTRT_DAY"],
             "deals": [
                 {
                     "date": r["CTRT_DAY"],
-                    "deposit": float(r["GRFE"]),
-                    "rent": float(r["RTFE"]),
+                    "deposit": int(float(r["GRFE"])),
+                    "rent": int(float(r["RTFE"])),
                     "area": float(r["RENT_AREA"]),
-                    "floor": r.get("FLR"),
+                    "floor": _to_int(r.get("FLR")),
                 }
                 for r in group[:MAX_DEALS]
             ],
@@ -94,7 +101,7 @@ def collect_meta(*row_lists):
             # 모두 비어 있다(예: rent_raw.json 5건). common.lot_address()는
             # int('')에서 죽으므로, 지번을 만들 수 없는 행은 건너뛴다
             # (geocode.py의 collect_parcels()와 같은 가드).
-            if not str(r.get("MNO", "")).strip():
+            if not common.has_lot(r):
                 continue
             key = common.parcel_key(r)
             if key not in latest or r["CTRT_DAY"] > latest[key]["CTRT_DAY"]:
@@ -114,13 +121,17 @@ def build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache):
         if not geo:
             skipped += 1
             continue
-        gu, dong, name = meta[key]
+        entry = meta.get(key)
+        if entry is None:
+            skipped += 1
+            continue
+        gu, dong, name = entry
         complexes.append({
             "gu": gu,
             "dong": dong,
             "name": name,
-            "lat": geo["lat"],
-            "lng": geo["lng"],
+            "lat": round(geo["lat"], 6),
+            "lng": round(geo["lng"], 6),
             "sale": sale_agg.get(key),
             "jeonse": jeonse_agg.get(key),
             "wolse": wolse_agg.get(key),
@@ -151,8 +162,8 @@ def main():
     meta_out = {"generatedAt": date.today().isoformat(), "total": len(complexes)}
     js = (
         "/* 서울 아파트 실거래가 데이터 — 자동 생성 파일 */\n"
-        "window.APT_COMPLEXES = " + json.dumps(complexes, ensure_ascii=False, indent=2) + ";\n"
-        "window.DATA_META = " + json.dumps(meta_out, ensure_ascii=False, indent=2) + ";\n"
+        "window.APT_COMPLEXES = " + json.dumps(complexes, ensure_ascii=False, separators=(",", ":")) + ";\n"
+        "window.DATA_META = " + json.dumps(meta_out, ensure_ascii=False, separators=(",", ":")) + ";\n"
     )
     OUT.write_text(js, encoding="utf-8")
     print(f"저장: {OUT}")

@@ -53,6 +53,17 @@ def test_build_complexes_skips_missing_geocode():
     assert skipped == 1
 
 
+def test_build_complexes_skips_key_missing_from_meta_without_crashing():
+    # geocode_cache.json은 사람이 손댈 수 있는 커밋된 파일이라, 키가 geocode_cache에는
+    # 있지만 meta에는 없는 상황이 생길 수 있다. meta[key]로 그냥 접근하면 KeyError로
+    # 죽어야 할 이유가 없다 — 좌표가 없을 때와 마찬가지로 skipped로 세고 건너뛰어야 한다.
+    sale_agg = build_data.aggregate_sale(SALE_ROWS)
+    cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
+    complexes, skipped = build_data.build_complexes(sale_agg, {}, {}, {}, cache)
+    assert complexes == []
+    assert skipped == 1
+
+
 def test_build_complexes_includes_geocoded():
     sale_agg = build_data.aggregate_sale(SALE_ROWS)
     meta = build_data.collect_meta(SALE_ROWS, [])
@@ -69,5 +80,6 @@ if __name__ == "__main__":
     test_aggregate_sale_groups_by_parcel_and_sorts_latest_first()
     test_aggregate_rent_splits_jeonse_and_wolse()
     test_build_complexes_skips_missing_geocode()
+    test_build_complexes_skips_key_missing_from_meta_without_crashing()
     test_build_complexes_includes_geocoded()
-    print("OK: build_data.py 4개 테스트 통과")
+    print("OK: build_data.py 5개 테스트 통과")

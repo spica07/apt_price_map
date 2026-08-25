@@ -29,6 +29,11 @@ def lot_address(row):
     return f"서울특별시 {row['CGG_NM']} {row['STDG_NM']} {lot}"
 
 
+def has_lot(row):
+    """lot_address()가 만들 수 있는 지번인지. 극소수 행은 위치 필드가 통째로 비어 있다."""
+    return str(row.get("MNO", "")).strip().isdigit() and str(row.get("SNO", "")).strip().isdigit()
+
+
 def price_per_pyeong(amount_10k_won, area_m2):
     """만원 단위 금액과 ㎡ 면적으로 평(3.3058㎡)당 가격(만원)을 낸다."""
     pyeong = area_m2 / 3.3058
@@ -50,7 +55,7 @@ def fetch_seoul_dataset(key, service, year, keep_row, per_page=1000, sleep=0.1, 
     first = call(1, per_page)
     result = first["RESULT"]
     if result["CODE"] != "INFO-000":
-        raise SystemExit(f"{year}년 {service} 요청 실패: {result['CODE']} {result['MESSAGE']}")
+        raise RuntimeError(f"{year}년 {service} 요청 실패: {result['CODE']} {result['MESSAGE']}")
     total = int(first["list_total_count"])
     log(f"{year}년 {service}: 전체 {total:,}건")
 
@@ -59,7 +64,11 @@ def fetch_seoul_dataset(key, service, year, keep_row, per_page=1000, sleep=0.1, 
     start = per_page + 1
     while fetched < total:
         end = start + per_page - 1
-        chunk = call(start, end).get("row", [])
+        page = call(start, end)
+        result = page["RESULT"]
+        if result["CODE"] != "INFO-000":
+            raise RuntimeError(f"{year}년 {service} 요청 실패(페이지 {start}-{end}): {result['CODE']} {result['MESSAGE']}")
+        chunk = page.get("row", [])
         if not chunk:
             break
         kept.extend(r for r in chunk if keep_row(r))
@@ -68,4 +77,7 @@ def fetch_seoul_dataset(key, service, year, keep_row, per_page=1000, sleep=0.1, 
         if start % 10000 < per_page:
             log(f"  {fetched:,}/{total:,} 조회, {len(kept):,}건 누적")
         time.sleep(sleep)
+
+    if fetched < total:
+        raise RuntimeError(f"{year}년 {service}: {fetched:,}/{total:,}건만 받음 — 중간에 페이지 요청이 끊겼을 수 있다")
     return kept

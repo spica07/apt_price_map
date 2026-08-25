@@ -54,8 +54,19 @@ def test_geocode_one_no_result_caches_none():
     assert cache["k2"] is None
 
 
+def test_geocode_one_three_429s_returns_none_without_poisoning_cache():
+    # 429가 3번 연속이면 for 루프가 break 없이 끝난다. 이건 레이트리밋이지
+    # "결과 없음"이 아니므로 None을 캐시에 쓰면 안 된다(재실행 시 재시도해야 한다).
+    session = FakeSession([FakeResponse(429), FakeResponse(429), FakeResponse(429)])
+    cache = {}
+    result = geocode.geocode_one(session, cache, "k", "주소")
+    assert result is None
+    assert "k" not in cache
+
+
 if __name__ == "__main__":
     test_geocode_one_hit()
     test_geocode_one_uses_cache()
     test_geocode_one_no_result_caches_none()
-    print("OK: geocode.py 3개 테스트 통과")
+    test_geocode_one_three_429s_returns_none_without_poisoning_cache()
+    print("OK: geocode.py 4개 테스트 통과")

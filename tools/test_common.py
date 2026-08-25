@@ -23,6 +23,22 @@ def test_lot_address_without_sno():
     assert common.lot_address(row) == "서울특별시 노원구 상계동 173"
 
 
+def test_has_lot_true_when_mno_and_sno_present():
+    row = {"MNO": "0173", "SNO": "0001"}
+    assert common.has_lot(row) is True
+
+
+def test_has_lot_false_when_mno_blank():
+    row = {"MNO": "", "SNO": "0001"}
+    assert common.has_lot(row) is False
+
+
+def test_has_lot_false_when_sno_blank():
+    # MNO는 있지만 SNO가 비어 있는 경우 — lot_address()가 int('')에서 죽는 케이스
+    row = {"MNO": "0173", "SNO": ""}
+    assert common.has_lot(row) is False
+
+
 def test_price_per_pyeong():
     # 84.5㎡(약 25.57평) 55,000만원 → 평당 약 2,151만원
     result = common.price_per_pyeong(55000, 84.5)
@@ -45,7 +61,10 @@ if __name__ == "__main__":
     test_parcel_key()
     test_lot_address_with_sno()
     test_lot_address_without_sno()
+    test_has_lot_true_when_mno_and_sno_present()
+    test_has_lot_false_when_mno_blank()
+    test_has_lot_false_when_sno_blank()
     test_price_per_pyeong()
     test_price_per_pyeong_zero_area_returns_none()
     test_load_env_key()
-    print("OK: common.py 6개 테스트 통과")
+    print("OK: common.py 9개 테스트 통과")
