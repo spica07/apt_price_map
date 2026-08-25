@@ -6,7 +6,9 @@
  *
  * 콘텐츠를 크게 바꾸면 CACHE 버전 숫자를 올려서 옛 캐시를 비운다.
  */
-const CACHE = 'apt-price-map-cache-v1';
+/* v2: 가격·면적 필터와 단지 목록 패널 추가로 index.html/app.js/style.css가
+   함께 바뀌었다. 버전을 올리지 않으면 셋 중 하나가 옛 캐시로 남아 깨진다. */
+const CACHE = 'apt-price-map-cache-v2';
 
 /* data.js 는 일부러 뺐다 — 16.6MB라 addAll 이 실패하면 설치 자체가 무산된다.
    아래 stale-while-revalidate 가 첫 조회 때 알아서 캐시에 넣는다. */

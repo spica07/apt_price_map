@@ -22,6 +22,50 @@
     return MODES[0];
   }
 
+  /* ---------- 필터(가격·면적) ----------
+     단지에는 대표 면적이 없다 — 최근 거래(최대 20건) 각각에 가격·면적이
+     있을 뿐이다. 그래서 "조건에 맞는 거래가 하나라도 있는 단지"를 통과시킨다
+     (가격·면적 둘 다 만족하는 한 건이 있어야 한다 — 실제 매물 검색과 같은 방식). */
+  var filters = { priceMin: null, priceMax: null, areaMin: null, areaMax: null };
+
+  function parseNum(el) {
+    var v = parseFloat(el.value);
+    return isNaN(v) ? null : v;
+  }
+
+  function readFilters() {
+    filters.priceMin = parseNum(document.getElementById('priceMin'));
+    filters.priceMax = parseNum(document.getElementById('priceMax'));
+    filters.areaMin = parseNum(document.getElementById('areaMin'));
+    filters.areaMax = parseNum(document.getElementById('areaMax'));
+  }
+
+  function hasActiveFilter() {
+    return filters.priceMin != null || filters.priceMax != null ||
+           filters.areaMin != null || filters.areaMax != null;
+  }
+
+  /* 매매는 거래가, 전세·월세는 보증금을 "가격"으로 본다 */
+  function dealPrice(d, mode) { return mode === 'sale' ? d.price : d.deposit; }
+
+  /* 조건을 만족하는 첫 거래를 돌려준다(없으면 null) — 카드에 그 거래를 보여준다 */
+  function matchingDeal(entry, mode) {
+    var priceMin = filters.priceMin != null ? filters.priceMin * 10000 : null;  // 억 -> 만원
+    var priceMax = filters.priceMax != null ? filters.priceMax * 10000 : null;
+    var areaMin = filters.areaMin != null ? filters.areaMin * 3.3058 : null;    // 평 -> ㎡
+    var areaMax = filters.areaMax != null ? filters.areaMax * 3.3058 : null;
+    for (var i = 0; i < entry.deals.length; i++) {
+      var d = entry.deals[i];
+      var p = dealPrice(d, mode);
+      if (priceMin != null && p < priceMin) continue;
+      if (priceMax != null && p > priceMax) continue;
+      if (areaMin != null && d.area < areaMin) continue;
+      if (areaMax != null && d.area > areaMax) continue;
+      return d;
+    }
+    return null;
+  }
+
   var ROOT_STYLE = getComputedStyle(document.documentElement);
   function cssVar(name, fallback) {
     return (ROOT_STYLE.getPropertyValue(name) || '').trim() || fallback;
@@ -106,6 +150,8 @@
   })();
 
   var markerLayer = L.layerGroup().addTo(map);
+  var markerById = {};
+  var listItems = [];
 
   function dealListHtml(entry, mode) {
     var shown = entry.deals.slice(0, 5);
@@ -142,14 +188,20 @@
 
   function render() {
     markerLayer.clearLayers();
+    markerById = {};
+    listItems = [];
     recomputeBreaks();
     var info = modeInfo(state.mode);
-    var count = 0;
+    var active = hasActiveFilter();
     for (var i = 0; i < ROWS.length; i++) {
       var complex = ROWS[i];
       var entry = complex[info.field];
       if (!entry) continue;
-      count++;
+      var deal = null;
+      if (active) {
+        deal = matchingDeal(entry, state.mode);
+        if (!deal) continue;
+      }
       var marker = L.circleMarker([complex.lat, complex.lng], {
         radius: 6,
         fillColor: colorFor(entry[info.metricField]),
@@ -159,9 +211,52 @@
       });
       marker.bindPopup(popupHtml(complex, state.mode));
       marker.addTo(markerLayer);
+      markerById[i] = marker;
+      listItems.push({ idx: i, complex: complex, entry: entry, deal: deal });
     }
-    document.getElementById('modeCount').textContent = '총 ' + count.toLocaleString() + '개 단지';
+    listItems.sort(function (a, b) {
+      var av = a.entry[info.metricField], bv = b.entry[info.metricField];
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return av - bv;
+    });
+    document.getElementById('modeCount').textContent = '총 ' + listItems.length.toLocaleString() + '개 단지';
     renderLegend();
+    renderList();
+  }
+
+  /* ---------- 목록(지도 옆) ---------- */
+  function listCardHtml(item) {
+    var info = modeInfo(state.mode);
+    var c = item.complex, entry = item.entry, deal = item.deal;
+    var priceLine = deal
+      ? (state.mode === 'sale'
+          ? esc(formatWon(deal.price))
+          : esc(formatWon(deal.deposit)) + (deal.rent > 0 ? ' · 월세 ' + esc(formatWon(deal.rent)) : '')) +
+        ' · ' + deal.area.toFixed(1) + '㎡'
+      : (state.mode === 'sale'
+          ? '최근 ' + esc(formatWon(entry.latestPrice))
+          : '최근 보증금 ' + esc(formatWon(entry.latestDeposit)) +
+            (entry.latestRent > 0 ? ' · 월세 ' + esc(formatWon(entry.latestRent)) : ''));
+    return '<article class="complex-card" data-idx="' + item.idx + '">' +
+      '<div class="cc-name">' + esc(c.name) + '</div>' +
+      '<div class="cc-meta">' + esc(c.gu) + ' ' + esc(c.dong) + '</div>' +
+      '<div class="cc-price">' + priceLine + '</div>' +
+      '<div class="cc-sub">' + esc(info.metricLabel) + ' ' + esc(formatWon(entry[info.metricField])) + '</div>' +
+      '</article>';
+  }
+
+  function renderList() {
+    var wrap = document.getElementById('complexList');
+    var empty = document.getElementById('listEmpty');
+    document.getElementById('listCount').textContent = listItems.length.toLocaleString() + '개';
+    if (!listItems.length) {
+      wrap.innerHTML = '';
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+    wrap.innerHTML = listItems.map(listCardHtml).join('');
   }
 
   function renderLegend() {
@@ -188,11 +283,45 @@
 
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-mode]');
-    if (!btn) return;
-    state.mode = btn.getAttribute('data-mode');
-    document.querySelectorAll('#modeToggle .pill').forEach(function (p) {
-      p.classList.toggle('active', p === btn);
+    if (btn) {
+      state.mode = btn.getAttribute('data-mode');
+      document.querySelectorAll('#modeToggle .pill').forEach(function (p) {
+        p.classList.toggle('active', p === btn);
+      });
+      render();
+      return;
+    }
+
+    var card = e.target.closest('[data-idx]');
+    if (card) {
+      var idx = Number(card.getAttribute('data-idx'));
+      var marker = markerById[idx];
+      var complex = ROWS[idx];
+      if (marker && complex) {
+        map.flyTo([complex.lat, complex.lng], Math.max(map.getZoom(), 15), { duration: 0.7 });
+        map.once('moveend', function () { marker.openPopup(); });
+      }
+      return;
+    }
+  });
+
+  /* ---------- 필터 입력 ---------- */
+  var filterTimer = null;
+  ['priceMin', 'priceMax', 'areaMin', 'areaMax'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', function () {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(function () {
+        readFilters();
+        render();
+      }, 250);
     });
+  });
+
+  document.getElementById('filterResetBtn').addEventListener('click', function () {
+    ['priceMin', 'priceMax', 'areaMin', 'areaMax'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    readFilters();
     render();
   });
 
