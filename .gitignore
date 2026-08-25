@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+tools/sale_raw.json
+tools/rent_raw.json
