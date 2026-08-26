@@ -15,7 +15,7 @@
     { key: 'jeonse', label: '전세', field: 'jeonse', metricField: 'avgDepositPerPyeong', metricLabel: '평당 보증금' },
     { key: 'wolse', label: '월세', field: 'wolse', metricField: 'avgDepositPerPyeong', metricLabel: '평당 보증금' }
   ];
-  var state = { mode: 'sale', q: '', gu: '', dong: '' };
+  var state = { mode: 'sale', q: '', gu: '', dong: '', view: 'map', sort: 'recent' };
   var PAGE_SIZE = 30;
   var renderedCount = PAGE_SIZE;
 
@@ -254,6 +254,26 @@
       dealListHtml(entry, mode);
   }
 
+  /* ---------- 정렬 ---------- */
+  /* 카드에 실제로 보이는 값(필터로 걸린 거래가 있으면 그 거래, 없으면
+     단지의 최근 거래)을 기준으로 정렬한다 — listCardHtml의 priceLine과 같은 값. */
+  function itemPrice(item) {
+    var d = item.deal;
+    if (state.mode === 'sale') return d ? d.price : item.entry.latestPrice;
+    return d ? d.deposit : item.entry.latestDeposit;
+  }
+  function itemDate(item) {
+    var d = item.deal;
+    return d ? d.date : item.entry.latestDate;
+  }
+  function sortListItems() {
+    listItems.sort(function (a, b) {
+      if (state.sort === 'priceDesc') return itemPrice(b) - itemPrice(a);
+      if (state.sort === 'priceAsc') return itemPrice(a) - itemPrice(b);
+      return itemDate(b).localeCompare(itemDate(a));  // 'recent' — 기본값
+    });
+  }
+
   function render() {
     markerLayer.clearLayers();
     markerById = {};
@@ -283,12 +303,7 @@
       markerById[i] = marker;
       listItems.push({ idx: i, complex: complex, entry: entry, deal: deal });
     }
-    listItems.sort(function (a, b) {
-      var av = a.entry[info.metricField], bv = b.entry[info.metricField];
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      return av - bv;
-    });
+    sortListItems();
     document.getElementById('modeCount').textContent = '총 ' + listItems.length.toLocaleString() + '개 단지';
     renderedCount = PAGE_SIZE;
     renderLegend();
@@ -365,6 +380,18 @@
     }).join('');
   }
 
+  /* ---------- 지도/목록 보기 전환 (900px 미만에서만 뜻이 있다) ---------- */
+  function switchView(v) {
+    state.view = v;
+    document.querySelectorAll('#viewToggle .pill').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-view') === v);
+    });
+    var grid = document.querySelector('.content-grid');
+    grid.classList.remove('view-map', 'view-list');
+    grid.classList.add('view-' + v);
+    if (v === 'map') setTimeout(function () { map.invalidateSize(); }, 50);
+  }
+
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-mode]');
     if (btn) {
@@ -376,12 +403,17 @@
       return;
     }
 
+    var viewBtn = e.target.closest('[data-view]');
+    if (viewBtn) { switchView(viewBtn.getAttribute('data-view')); return; }
+
     var card = e.target.closest('[data-idx]');
     if (card) {
       var idx = Number(card.getAttribute('data-idx'));
       var marker = markerById[idx];
       var complex = ROWS[idx];
       if (marker && complex) {
+        // 목록만 보이는 화면에서 단지를 누르면 지도로 전환해야 마커가 보인다
+        if (window.innerWidth <= 900 && state.view !== 'map') switchView('map');
         map.flyTo([complex.lat, complex.lng], Math.max(map.getZoom(), 15), { duration: 0.7 });
         map.once('moveend', function () { marker.openPopup(); });
       }
@@ -423,6 +455,13 @@
     render();
   });
 
+  document.getElementById('sortSelect').addEventListener('change', function (e) {
+    state.sort = e.target.value;
+    sortListItems();
+    renderedCount = PAGE_SIZE;
+    renderList();
+  });
+
   document.getElementById('filterResetBtn').addEventListener('click', function () {
     ['priceMin', 'priceMax', 'areaMin', 'areaMax', 'ratioMin', 'ratioMax'].forEach(function (id) {
       document.getElementById(id).value = '';
@@ -443,6 +482,7 @@
   buildModeToggle();
   buildGuSelect();
   render();
+  if (window.innerWidth <= 900) switchView('list');
 
   document.getElementById('listMoreBtn').addEventListener('click', function () {
     renderedCount += PAGE_SIZE;

@@ -226,24 +226,41 @@ body {
 .filter-sep { color: var(--ink-muted); }
 .filter-reset { min-height: 36px; padding: 0 12px; font-size: var(--fs-s); margin-left: auto; }
 
-/* ---------- 지도 + 목록 ---------- */
-.content-grid { display: grid; grid-template-columns: 1fr; gap: 12px; height: calc(100dvh - 250px); min-height: 460px; }
-.map-pane { position: relative; border: 1px solid var(--line); border-radius: var(--radius-panel); overflow: hidden; background: var(--panel); height: 55%; min-height: 320px; }
-#map { height: 100%; }
+/* ---------- 지도/목록 보기 전환 (모바일 전용 — 900px부터는 나란히 보여 필요 없다) ---------- */
+.view-toggle { display: inline-flex; margin-top: 10px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--panel); }
+.view-toggle .pill { border: none; border-radius: 0; }
+.view-toggle .pill + .pill { box-shadow: inset 1px 0 0 var(--line); }
+
+/* ---------- 지도 + 목록 ----------
+   기본(모바일)은 지도/목록 중 하나만 보이고 페이지 스크롤을 그대로 쓴다.
+   900px부터 나란히 보이는 레이아웃은 아래 미디어 쿼리에서 따로 잡는다. */
+.content-grid { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; }
+.content-grid.view-map .list-pane { display: none; }
+.content-grid.view-list .map-pane { display: none; }
+
+.map-pane { position: relative; border: 1px solid var(--line); border-radius: var(--radius-panel); overflow: hidden; background: var(--panel); }
+#map { height: 62dvh; min-height: 320px; }
 
 .list-pane {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   padding: 10px;
 }
-.list-header { display: flex; align-items: baseline; justify-content: space-between; padding: 2px 4px 8px; }
+.list-header { display: flex; align-items: center; gap: 8px; padding: 2px 4px 8px; flex-wrap: wrap; }
 .list-title { font-size: var(--fs-base); font-weight: 600; color: var(--ink); }
-.list-count { font-size: var(--fs-s); color: var(--ink-muted); }
-.complex-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.list-count { font-size: var(--fs-s); color: var(--ink-muted); margin-left: auto; }
+.sort-select {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: var(--fs-s);
+  color: var(--ink);
+  background: var(--panel);
+}
+.complex-list { display: flex; flex-direction: column; gap: 8px; }
 .list-empty { padding: 16px 4px; font-size: var(--fs-s); color: var(--ink-muted); }
 .list-more-btn {
   display: inline-flex;
@@ -364,12 +381,25 @@ body {
   .app-title { font-size: var(--fs-xl); }
   .sign-count .num { font-size: var(--fs-xl); }
   .panel { padding: 14px; }
-  .content-grid { height: calc(100dvh - 270px); }
 }
 
+/* ============================================================
+   ≥900px — 지도와 목록을 나란히 (모바일의 지도/목록 전환 없이 둘 다 보인다)
+   ============================================================ */
 @media (min-width: 900px) {
-  .content-grid { grid-template-columns: 2fr 1fr; }
-  .map-pane { height: 100%; }
+  .view-toggle { display: none; }
+  .content-grid {
+    grid-template-columns: 2fr 1fr;
+    height: calc(100dvh - 270px);
+    min-height: 460px;
+    align-items: stretch;
+  }
+  .content-grid.view-map .list-pane,
+  .content-grid.view-list .map-pane { display: block; }
+  .map-pane { position: sticky; top: 8px; height: 100%; }
+  #map { height: 100%; }
+  .list-pane { display: flex; flex-direction: column; min-height: 0; }
+  .complex-list { flex: 1; min-height: 0; overflow-y: auto; }
 }
 
 @media (hover: hover) {

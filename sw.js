@@ -6,7 +6,12 @@
  *
  * 콘텐츠를 크게 바꾸면 CACHE 버전 숫자를 올려서 옛 캐시를 비운다.
  */
-/* v8: 2026년 전세가율(매매 대비 전세가) 카드 표시·필터 추가로
+/* v9: 모바일에서 지도/목록을 나눠 보여주는 보기 전환(지도·목록 탭) 추가.
+   기존엔 모바일에서도 데스크톱과 같은 레이아웃(고정 높이 자르기)을 써서
+   목록이 찌그러져 보였다 — 900px 미만은 지도 또는 목록 하나만, 페이지
+   스크롤 그대로 쓰는 방식으로 바꿨다. 단지 목록 정렬(최신거래순/가격
+   높은순/낮은순)도 추가. index.html/app.js/style.css 변경.
+   v8: 2026년 전세가율(매매 대비 전세가) 카드 표시·필터 추가로
    index.html/app.js/style.css와 data.js(jeonseRatio2026 필드)가 바뀌었다.
    v7: "더 보기" 버튼(.list-more-btn)이 padding 없이 폭도 안 잡혀 상세
    페이지에서 거의 안 보이던 문제를 고쳐 style.css가 바뀌었다.
@@ -15,7 +20,7 @@
    data.js(재수집) + assets/data/deals/*.json가 바뀌었다.
    v5: 필터 접이식 전환 + 단지 목록 더보기. v4: 리포트 동별 초고가 표.
    v3: 검색·자치구·동 필터. v2: 가격·면적 필터와 단지 목록 패널. */
-const CACHE = 'apt-price-map-cache-v8';
+const CACHE = 'apt-price-map-cache-v9';
 
 /* data.js 는 일부러 뺐다 — 16.6MB라 addAll 이 실패하면 설치 자체가 무산된다.
    아래 stale-while-revalidate 가 첫 조회 때 알아서 캐시에 넣는다. */
