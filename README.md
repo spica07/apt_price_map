@@ -9,6 +9,8 @@
 - 매매 6,420 / 전세 6,888 / 월세 6,855개 단지에 거래 데이터 보유
 - 단지 클릭 시 최근 거래(최대 20건, 최신순) 확인, 상세 페이지에서는 전체 내역을 더 보기로 확인
 - 평당가(전세·월세는 평당 보증금) 분위수 기준 마커 색상
+- 서울 초등학교 606곳 지도 표시(토글 가능), 단지별 가장 가까운 초등학교와
+  직선거리(배정 학교와 다를 수 있음을 팝업·상세 페이지에 함께 표시)
 
 ## 실행
 
@@ -29,7 +31,7 @@ py -m http.server 8000
 py tools/fetch_sale.py      # 매매 실거래가 (서울 열린데이터광장 SEOUL_OPENDATA_KEY)
 py tools/fetch_rent.py      # 전월세 실거래가 (같은 키, 훨씬 오래 걸림 — 585,601건 기준 약 1시간)
 py tools/geocode.py         # 단지 좌표 (카카오 KAKAO_REST_KEY, 캐시로 재실행 시 새 단지만 조회)
-py tools/build_data.py      # -> assets/js/data.js (단지당 최근 20건) + assets/data/deals/<idx>.json (단지별 전체 내역)
+py tools/build_data.py      # -> assets/js/data.js (단지당 최근 20건) + assets/data/deals/<idx>.json (단지별 전체 내역) + assets/js/schools.js
 py tools/make_icons.py      # 아이콘을 다시 만들 때만 (브랜드 색을 바꾼 경우 등)
 ```
 
@@ -37,6 +39,13 @@ py tools/make_icons.py      # 아이콘을 다시 만들 때만 (브랜드 색�
 보여줄 때 쓰는 단지별 파일입니다. `data.js`처럼 최종 산출물이라 커밋해야
 GitHub Pages에서 동작합니다 — `build_data.py`를 다시 돌리면 파일 수천 개가
 통째로 새로 만들어지니, 커밋 전에 `git status`로 규모를 한번 확인하세요.
+
+**초등학교 위치는 이 워크스페이스의 형제 프로젝트 `elementary_school_map`
+(`../elementary_school_map/assets/js/data.js`)에서 그대로 가져다 씁니다** —
+이 프로젝트에는 초등학교 원자료 수집 스크립트가 따로 없습니다. 그 프로젝트의
+데이터가 갱신되면 `build_data.py`를 다시 돌려야 여기도 반영됩니다. 두
+저장소가 로컬에서 같은 위치(`C:\blog_writing\`)에 나란히 있어야 경로를
+찾습니다.
 
 인증키는 `.env`에 둡니다 (`.env.example` 참고):
 - `SEOUL_OPENDATA_KEY` — 서울 열린데이터광장(data.seoul.go.kr) 계정당 발급되는 일반 인증키

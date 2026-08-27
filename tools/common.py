@@ -4,6 +4,7 @@ fetch_sale.py / fetch_rent.py / geocode.py / build_data.py 가 모두 이 모듈
 단지를 식별하고 지번주소를 만들고 서울 열린데이터광장을 호출한다.
 """
 import json
+import math
 import time
 import urllib.request
 
@@ -40,6 +41,17 @@ def price_per_pyeong(amount_10k_won, area_m2):
     if pyeong <= 0:
         return None
     return amount_10k_won / pyeong
+
+
+def haversine_m(lat1, lng1, lat2, lng2):
+    """두 좌표 사이 직선거리(미터). 지구를 구로 근사한 값이라 실제 통학로
+    거리가 아니라 최단 직선거리다 — "가까운 학교"는 참고용일 뿐이다."""
+    r = 6371000
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lng2 - lng1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlambda / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
 
 
 def fetch_seoul_dataset(key, service, year, keep_row, per_page=1000, sleep=0.1, log=print):

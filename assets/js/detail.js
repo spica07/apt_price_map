@@ -97,8 +97,22 @@
     return head + stats + table + moreBtn + '</section>';
   }
 
+  function schoolSectionHtml() {
+    var s = complex.nearestSchool;
+    if (!s) return '';
+    return '<section class="panel detail-section"><h2 class="report-h">가까운 초등학교</h2>' +
+      '<div class="stat-tiles">' +
+        '<div class="stat-tile"><span class="num">' + esc(s.name) + '</span><span class="lbl">학교명</span></div>' +
+        '<div class="stat-tile"><span class="num">' + s.distanceM.toLocaleString() + 'm</span><span class="lbl">직선거리</span></div>' +
+        '<div class="stat-tile"><span class="num">' + esc(s.district) + '</span><span class="lbl">소재 자치구</span></div>' +
+      '</div>' +
+      '<p class="report-note">단지 좌표에서 직선거리로 가장 가까운 초등학교입니다. ' +
+      '실제 배정 학교(통학구역)와 다를 수 있으니, 정확한 배정 학교는 교육지원청이나 학교알리미에서 확인하세요.</p>' +
+      '</section>';
+  }
+
   function render() {
-    body.innerHTML = MODES.map(sectionHtml).join('');
+    body.innerHTML = schoolSectionHtml() + MODES.map(sectionHtml).join('');
   }
 
   document.addEventListener('click', function (e) {

@@ -22,6 +22,9 @@
   --price-4: #7A2E38;
   --price-5: #4A1620;
 
+  /* 아파트 가격 색(와인 계열)과 겹치지 않는 초등학교 전용 색 */
+  --school-color: #1F6FA8;
+
   --fs-xxl: 2.19rem;
   --fs-xl:  1.75rem;
   --fs-l:   1.40rem;
@@ -330,6 +333,36 @@ body {
   outline: 1px solid rgba(0, 0, 0, .18);
 }
 .legend-lbl { color: var(--ink-muted); }
+
+.school-toggle-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 800;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .94);
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: var(--fs-s);
+  cursor: pointer;
+}
+.school-toggle-btn.active { background: var(--school-color); border-color: var(--school-color); color: #fff; }
+
+.school-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 1.5px solid var(--school-color);
+  border-radius: 50%;
+  color: var(--school-color);
+}
+.popup-note { font-size: var(--fs-s); color: var(--ink-muted); font-style: italic; margin-top: -2px; margin-bottom: 6px; }
 
 /* Leaflet 팝업 */
 .leaflet-popup-content-wrapper { border-radius: var(--radius-card); font-family: 'IBM Plex Sans KR', sans-serif; }

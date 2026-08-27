@@ -49,6 +49,16 @@ def test_price_per_pyeong_zero_area_returns_none():
     assert common.price_per_pyeong(55000, 0) is None
 
 
+def test_haversine_m_same_point_is_zero():
+    assert common.haversine_m(37.5, 127.0, 37.5, 127.0) == 0
+
+
+def test_haversine_m_matches_known_distance_roughly():
+    # 위도 0.01도 차이는 대략 1.11km
+    d = common.haversine_m(37.50, 127.00, 37.51, 127.00)
+    assert 1050 < d < 1200
+
+
 def test_load_env_key():
     with tempfile.TemporaryDirectory() as d:
         root = Path(d)
@@ -66,5 +76,7 @@ if __name__ == "__main__":
     test_has_lot_false_when_sno_blank()
     test_price_per_pyeong()
     test_price_per_pyeong_zero_area_returns_none()
+    test_haversine_m_same_point_is_zero()
+    test_haversine_m_matches_known_distance_roughly()
     test_load_env_key()
-    print("OK: common.py 9개 테스트 통과")
+    print("OK: common.py 11개 테스트 통과")

@@ -92,7 +92,7 @@ def test_split_full_and_capped_caps_data_js_but_keeps_full_file():
     sale_agg = build_data.aggregate_sale(SALE_ROWS)
     meta = build_data.collect_meta(SALE_ROWS, [])
     cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
-    complexes, _ = build_data.build_complexes(sale_agg, {}, {}, meta, cache)
+    complexes, _ = build_data.build_complexes(sale_agg, {}, {}, meta, cache, [])
     full_by_idx, capped = build_data.split_full_and_capped(complexes, max_deals=1)
     assert len(capped[0]["sale"]["deals"]) == 1
     assert len(full_by_idx[0]["sale"]) == 2
@@ -104,7 +104,7 @@ def test_split_full_and_capped_caps_data_js_but_keeps_full_file():
 def test_build_complexes_skips_missing_geocode():
     sale_agg = build_data.aggregate_sale(SALE_ROWS)
     meta = build_data.collect_meta(SALE_ROWS, [])
-    complexes, skipped = build_data.build_complexes(sale_agg, {}, {}, meta, {})
+    complexes, skipped = build_data.build_complexes(sale_agg, {}, {}, meta, {}, [])
     assert complexes == []
     assert skipped == 1
 
@@ -115,7 +115,7 @@ def test_build_complexes_skips_key_missing_from_meta_without_crashing():
     # 죽어야 할 이유가 없다 — 좌표가 없을 때와 마찬가지로 skipped로 세고 건너뛰어야 한다.
     sale_agg = build_data.aggregate_sale(SALE_ROWS)
     cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
-    complexes, skipped = build_data.build_complexes(sale_agg, {}, {}, {}, cache)
+    complexes, skipped = build_data.build_complexes(sale_agg, {}, {}, {}, cache, [])
     assert complexes == []
     assert skipped == 1
 
@@ -124,13 +124,14 @@ def test_build_complexes_includes_geocoded():
     sale_agg = build_data.aggregate_sale(SALE_ROWS)
     meta = build_data.collect_meta(SALE_ROWS, [])
     cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
-    complexes, skipped = build_data.build_complexes(sale_agg, {}, {}, meta, cache)
+    complexes, skipped = build_data.build_complexes(sale_agg, {}, {}, meta, cache, [])
     assert skipped == 0
     assert complexes[0]["name"] == "벽산"
     assert complexes[0]["sale"]["count"] == 2
     assert complexes[0]["jeonse"] is None
     assert complexes[0]["wolse"] is None
     assert complexes[0]["jeonseRatio2026"] is None  # 전세 데이터가 없으니 계산 못 한다
+    assert complexes[0]["nearestSchool"] is None  # 학교 목록을 안 줬으니 계산 못 한다
 
 
 def test_build_complexes_computes_jeonse_ratio_when_both_modes_present():
@@ -143,9 +144,33 @@ def test_build_complexes_computes_jeonse_ratio_when_both_modes_present():
     jeonse_agg = build_data.aggregate_rent(same_parcel_jeonse, "전세")
     meta = build_data.collect_meta(SALE_ROWS, same_parcel_jeonse)
     cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
-    complexes, _ = build_data.build_complexes(sale_agg, jeonse_agg, {}, meta, cache)
+    complexes, _ = build_data.build_complexes(sale_agg, jeonse_agg, {}, meta, cache, [])
     assert complexes[0]["jeonseRatio2026"] is not None
     assert 0 < complexes[0]["jeonseRatio2026"] < 100
+
+
+def test_nearest_school_picks_closest():
+    schools = [
+        {"name": "먼학교", "district": "강남구", "lat": 37.60, "lng": 127.10},
+        {"name": "가까운학교", "district": "강남구", "lat": 37.501, "lng": 127.001},
+    ]
+    result = build_data.nearest_school(37.5, 127.0, schools)
+    assert result["name"] == "가까운학교"
+    assert result["district"] == "강남구"
+    assert result["distanceM"] > 0
+
+
+def test_nearest_school_empty_list_returns_none():
+    assert build_data.nearest_school(37.5, 127.0, []) is None
+
+
+def test_build_complexes_fills_nearest_school_when_list_given():
+    sale_agg = build_data.aggregate_sale(SALE_ROWS)
+    meta = build_data.collect_meta(SALE_ROWS, [])
+    cache = {"노원구|상계동|0173|0001": {"lat": 37.66, "lng": 127.06}}
+    schools = [{"name": "상계초등학교", "district": "노원구", "lat": 37.661, "lng": 127.061}]
+    complexes, _ = build_data.build_complexes(sale_agg, {}, {}, meta, cache, schools)
+    assert complexes[0]["nearestSchool"]["name"] == "상계초등학교"
 
 
 if __name__ == "__main__":
@@ -160,4 +185,7 @@ if __name__ == "__main__":
     test_build_complexes_skips_key_missing_from_meta_without_crashing()
     test_build_complexes_includes_geocoded()
     test_build_complexes_computes_jeonse_ratio_when_both_modes_present()
-    print("OK: build_data.py 11개 테스트 통과")
+    test_nearest_school_picks_closest()
+    test_nearest_school_empty_list_returns_none()
+    test_build_complexes_fills_nearest_school_when_list_given()
+    print("OK: build_data.py 14개 테스트 통과")

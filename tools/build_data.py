@@ -18,6 +18,12 @@ OUT = ROOT / "assets" / "js" / "data.js"
 DEALS_DIR = ROOT / "assets" / "data" / "deals"
 MAX_DEALS = 20  # data.js(지도·목록)에 넣는 최근 거래 상한 — 전체 내역은 DEALS_DIR에 따로 둔다
 
+# 초등학교 위치는 이 워크스페이스의 형제 프로젝트 elementary_school_map이
+# 이미 수집·정리해 둔 것을 그대로 가져다 쓴다(전국 6,303개 중 서울만).
+# 그 프로젝트의 데이터가 갱신되면 이 파이프라인을 다시 돌려야 반영된다.
+SCHOOL_SOURCE = ROOT.parent / "elementary_school_map" / "assets" / "js" / "data.js"
+SCHOOLS_OUT = ROOT / "assets" / "js" / "schools.js"
+
 
 def _to_int(value):
     """층수처럼 정수값인데 원본에서 float/문자열로 올 수 있는 필드를 int로 통일한다."""
@@ -107,6 +113,53 @@ def aggregate_rent(rows, rent_se):
     return out
 
 
+def load_seoul_schools():
+    """elementary_school_map/assets/js/data.js에서 window.SCHOOLS 배열을
+    꺼내 서울만 남긴다. 그 파일은 JS라 `window.SCHOOLS = [...];` 줄을
+    문자열로 잘라 JSON으로 읽는다."""
+    text = SCHOOL_SOURCE.read_text(encoding="utf-8")
+    marker = "window.SCHOOLS = "
+    start = text.index(marker) + len(marker)
+    end = text.index(";\n", start)
+    schools = json.loads(text[start:end])
+    return [s for s in schools if s.get("region") == "서울"]
+
+
+def nearest_school(lat, lng, schools):
+    """단지 좌표에서 직선거리로 가장 가까운 학교 하나. schools가 비어 있으면 None."""
+    best = None
+    best_d = None
+    for s in schools:
+        d = common.haversine_m(lat, lng, s["lat"], s["lng"])
+        if best_d is None or d < best_d:
+            best_d, best = d, s
+    if best is None:
+        return None
+    return {"name": best["name"], "district": best["district"], "distanceM": round(best_d)}
+
+
+def write_schools_js(schools):
+    """지도에 그릴 서울 초등학교 목록을 별도 파일로 만든다 — data.js와
+    분리해 상세 페이지(학교 목록 자체는 필요 없다)가 이 큰 파일을 안 받게 한다."""
+    compact = [
+        {
+            "name": s["name"],
+            "address": s["address"],
+            "district": s["district"],
+            "lat": s["lat"],
+            "lng": s["lng"],
+            "studentCount": s.get("studentCount"),
+            "classCount": s.get("classCount"),
+        }
+        for s in schools
+    ]
+    js = (
+        "/* 서울 초등학교 위치 — elementary_school_map에서 가져온 자동 생성 파일 */\n"
+        "window.SCHOOLS_SEOUL = " + json.dumps(compact, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    )
+    SCHOOLS_OUT.write_text(js, encoding="utf-8")
+
+
 def collect_meta(*row_lists):
     """parcel_key -> (자치구, 법정동, 단지명). 가장 최근 거래의 표기를 쓴다."""
     latest = {}
@@ -139,7 +192,7 @@ def jeonse_ratio_2026(sale_entry, jeonse_entry):
     return round(jeonse_2026 / sale_2026 * 100)
 
 
-def build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache):
+def build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache, seoul_schools):
     keys = set(sale_agg) | set(jeonse_agg) | set(wolse_agg)
     complexes = []
     skipped = 0
@@ -155,16 +208,18 @@ def build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache):
         gu, dong, name = entry
         sale_entry = sale_agg.get(key)
         jeonse_entry = jeonse_agg.get(key)
+        lat, lng = round(geo["lat"], 6), round(geo["lng"], 6)
         complexes.append({
             "gu": gu,
             "dong": dong,
             "name": name,
-            "lat": round(geo["lat"], 6),
-            "lng": round(geo["lng"], 6),
+            "lat": lat,
+            "lng": lng,
             "sale": sale_entry,
             "jeonse": jeonse_entry,
             "wolse": wolse_agg.get(key),
             "jeonseRatio2026": jeonse_ratio_2026(sale_entry, jeonse_entry),
+            "nearestSchool": nearest_school(lat, lng, seoul_schools),
         })
     return complexes, skipped
 
@@ -200,7 +255,10 @@ def main():
     wolse_agg = aggregate_rent(rent_rows, "월세")
     meta = collect_meta(sale_rows, rent_rows)
 
-    complexes, skipped = build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache)
+    seoul_schools = load_seoul_schools()
+    print(f"서울 초등학교 {len(seoul_schools):,}개 로드 (출처: {SCHOOL_SOURCE})")
+
+    complexes, skipped = build_complexes(sale_agg, jeonse_agg, wolse_agg, meta, geocode_cache, seoul_schools)
 
     gu_set = sorted({c["gu"] for c in complexes})
     print(f"단지 {len(complexes):,}개 (좌표 없어 제외 {skipped:,}개)")
@@ -208,6 +266,10 @@ def main():
     for label, field in (("매매", "sale"), ("전세", "jeonse"), ("월세", "wolse")):
         n = sum(1 for c in complexes if c[field])
         print(f"  {label} 데이터 있는 단지: {n:,}개")
+    print(f"  가까운 초등학교 계산된 단지: {sum(1 for c in complexes if c['nearestSchool']):,}개")
+
+    write_schools_js(seoul_schools)
+    print(f"저장: {SCHOOLS_OUT}")
 
     full_by_idx, capped = split_full_and_capped(complexes, MAX_DEALS)
 

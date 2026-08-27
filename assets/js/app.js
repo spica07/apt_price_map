@@ -220,6 +220,41 @@
   var markerById = {};
   var listItems = [];
 
+  /* ---------- 초등학교 ---------- */
+  var SCHOOLS = window.SCHOOLS_SEOUL || [];
+  var schoolLayer = L.layerGroup().addTo(map);
+  var schoolsVisible = true;
+  var SCHOOL_ICON_SVG = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" ' +
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 10 12 4l8 6"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>';
+
+  function renderSchools() {
+    schoolLayer.clearLayers();
+    if (!schoolsVisible) return;
+    SCHOOLS.forEach(function (s) {
+      var marker = L.marker([s.lat, s.lng], {
+        icon: L.divIcon({ className: 'school-icon', html: SCHOOL_ICON_SVG, iconSize: [20, 20], iconAnchor: [10, 10] })
+      });
+      var studentLine = s.studentCount
+        ? '<div class="popup-stat">학생 수 ' + s.studentCount.toLocaleString() + '명 · 학급 ' + s.classCount + '개</div>'
+        : '';
+      marker.bindPopup(
+        '<div class="popup-name">' + esc(s.name) + '</div>' +
+        '<div class="popup-meta">' + esc(s.district) + ' · ' + esc(s.address) + '</div>' +
+        studentLine
+      );
+      marker.addTo(schoolLayer);
+    });
+  }
+  renderSchools();
+
+  document.getElementById('schoolToggleBtn').addEventListener('click', function () {
+    schoolsVisible = !schoolsVisible;
+    this.classList.toggle('active', schoolsVisible);
+    this.setAttribute('aria-pressed', String(schoolsVisible));
+    renderSchools();
+  });
+
   function dealListHtml(entry, mode) {
     var shown = entry.deals.slice(0, 5);
     var items = shown.map(function (d) {
@@ -238,6 +273,13 @@
     return '<ul class="popup-deals">' + items.join('') + '</ul>' + more;
   }
 
+  function schoolLineHtml(complex) {
+    if (!complex.nearestSchool) return '';
+    return '<div class="popup-stat">가까운 초등학교 ' + esc(complex.nearestSchool.name) +
+      ' (' + complex.nearestSchool.distanceM.toLocaleString() + 'm)</div>' +
+      '<div class="popup-note">실제 배정 학교와 다를 수 있어요</div>';
+  }
+
   function popupHtml(complex, mode) {
     var info = modeInfo(mode);
     var entry = complex[info.field];
@@ -251,6 +293,7 @@
       '<div class="popup-stat"><b>' + headline + '</b></div>' +
       '<div class="popup-stat">' + esc(info.metricLabel) + ' ' + esc(formatWon(perPyeong)) + ' · 거래 ' + entry.count.toLocaleString() + '건 · ' +
       esc(formatDate(entry.latestDate)) + '</div>' +
+      schoolLineHtml(complex) +
       dealListHtml(entry, mode);
   }
 
