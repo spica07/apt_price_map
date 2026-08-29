@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 tools/sale_raw.json
 tools/rent_raw.json
+.impeccable/
+docs/
+tools/
+.claude/
