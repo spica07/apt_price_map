@@ -52,10 +52,16 @@
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 9l7 7 7-7"/></svg>
       </button>
     </div>
-    <div class="view-toggle" id="viewToggle">
-      <button class="pill active" data-view="map" type="button">지도</button>
-      <button class="pill" data-view="list" type="button">목록</button>
+    <div class="view-row" id="viewRow">
+      <div class="view-toggle" id="viewToggle">
+        <button class="pill active" data-view="map" type="button">지도</button>
+        <button class="pill" data-view="list" type="button">목록</button>
+      </div>
+      <button class="pill nearby-btn" id="nearbyBtn" type="button" aria-pressed="false">
+        <span id="nearbyLabel">내 주변</span>
+      </button>
     </div>
+    <p class="nearby-notice" id="nearbyNotice" hidden></p>
     <div class="filter-groups" id="filterGroups" hidden>
       <div class="search-row">
         <input type="search" id="searchInput" class="search-input" placeholder="단지명이나 동으로 검색해 보세요" autocomplete="off">
@@ -125,6 +131,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <script src="assets/js/data.js"></script>
 <script src="assets/js/schools.js"></script>
+<script src="assets/js/geo.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

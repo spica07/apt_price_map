@@ -255,6 +255,27 @@
     renderSchools();
   });
 
+  /* ---------- 내 주변 ----------
+     권한 요청·거리 계산·내 위치 마커는 geo.js 가 맡는다. 이 앱이 알려줄 것은
+     좌표를 꺼내는 법과, 자치구·동 필터를 어떻게 푸는지뿐이다. */
+  function clearGuDong() {
+    state.gu = '';
+    state.dong = '';
+    document.getElementById('guSelect').value = '';
+    rebuildDongSelect('');
+  }
+
+  var nearby = window.createNearby({
+    map: map,
+    button: document.getElementById('nearbyBtn'),
+    label: document.getElementById('nearbyLabel'),
+    notice: document.getElementById('nearbyNotice'),
+    unitLabel: '단지',
+    latLngOf: function (item) { return [item.complex.lat, item.complex.lng]; },
+    onClear: clearGuDong,
+    onChange: render
+  });
+
   function dealListHtml(entry, mode) {
     var shown = entry.deals.slice(0, 5);
     var items = shown.map(function (d) {
@@ -280,16 +301,18 @@
       '<div class="popup-note">실제 배정 학교와 다를 수 있어요</div>';
   }
 
-  function popupHtml(complex, mode) {
+  function popupHtml(item, mode) {
     var info = modeInfo(mode);
-    var entry = complex[info.field];
+    var complex = item.complex, entry = item.entry;
     var headline = mode === 'sale'
       ? '최근 ' + esc(formatWon(entry.latestPrice))
       : '최근 보증금 ' + esc(formatWon(entry.latestDeposit)) +
         (entry.latestRent > 0 ? ' · 월세 ' + esc(formatWon(entry.latestRent)) : '');
     var perPyeong = entry[info.metricField];
+    var distText = nearby.text(item);
     return '<div class="popup-name">' + esc(complex.name) + '</div>' +
       '<div class="popup-meta">' + esc(complex.gu) + ' ' + esc(complex.dong) + ' · ' + esc(info.label) + '</div>' +
+      (distText ? '<div class="popup-stat">내 위치에서 ' + esc(distText) + '</div>' : '') +
       '<div class="popup-stat"><b>' + headline + '</b></div>' +
       '<div class="popup-stat">' + esc(info.metricLabel) + ' ' + esc(formatWon(perPyeong)) + ' · 거래 ' + entry.count.toLocaleString() + '건 · ' +
       esc(formatDate(entry.latestDate)) + '</div>' +
@@ -318,12 +341,10 @@
   }
 
   function render() {
-    markerLayer.clearLayers();
-    markerById = {};
-    listItems = [];
     recomputeBreaks();
     var info = modeInfo(state.mode);
     var active = hasActiveFilter();
+    var candidates = [];
     for (var i = 0; i < ROWS.length; i++) {
       var complex = ROWS[i];
       var entry = complex[info.field];
@@ -334,21 +355,30 @@
         deal = matchingDeal(entry, state.mode);
         if (!deal) continue;
       }
-      var marker = L.circleMarker([complex.lat, complex.lng], {
+      candidates.push({ idx: i, complex: complex, entry: entry, deal: deal });
+    }
+    /* 내 주변이 켜져 있으면 가까운 순으로 자르고, 꺼져 있으면 그대로 돌아온다 */
+    listItems = nearby.sort(candidates);
+
+    markerLayer.clearLayers();
+    markerById = {};
+    listItems.forEach(function (item) {
+      var marker = L.circleMarker([item.complex.lat, item.complex.lng], {
         radius: 6,
-        fillColor: colorFor(entry[info.metricField]),
+        fillColor: colorFor(item.entry[info.metricField]),
         color: '#ffffff',
         weight: 1.5,
         fillOpacity: 0.9
       });
-      marker.bindPopup(popupHtml(complex, state.mode));
+      marker.bindPopup(popupHtml(item, state.mode));
       marker.addTo(markerLayer);
-      markerById[i] = marker;
-      listItems.push({ idx: i, complex: complex, entry: entry, deal: deal });
-    }
-    sortListItems();
-    document.getElementById('modeCount').textContent = '총 ' + listItems.length.toLocaleString() + '개 단지';
-    renderedCount = PAGE_SIZE;
+      markerById[item.idx] = marker;
+    });
+
+    if (!nearby.active()) sortListItems();   /* 거리순일 때는 정렬을 덮어쓰지 않는다 */
+    document.getElementById('modeCount').textContent = (nearby.active() ? '가까운 ' : '총 ') +
+      listItems.length.toLocaleString() + '개 단지';
+    renderedCount = nearby.active() ? nearby.limit : PAGE_SIZE;
     renderLegend();
     renderList();
   }
@@ -369,9 +399,11 @@
     var ratioLine = c.jeonseRatio2026 != null
       ? '<div class="cc-ratio">2026년 전세가율 ' + c.jeonseRatio2026 + '%</div>'
       : '';
+    var distTag = nearby.tag(item);
     return '<article class="complex-card" data-idx="' + item.idx + '">' +
       '<div class="cc-name">' + esc(c.name) + '</div>' +
       '<div class="cc-meta">' + esc(c.gu) + ' ' + esc(c.dong) + '</div>' +
+      (distTag ? '<div class="cc-tags">' + distTag + '</div>' : '') +
       '<div class="cc-price">' + priceLine + '</div>' +
       '<div class="cc-sub">' + esc(info.metricLabel) + ' ' + esc(formatWon(entry[info.metricField])) + '</div>' +
       ratioLine +
@@ -487,6 +519,7 @@
   });
 
   document.getElementById('guSelect').addEventListener('change', function (e) {
+    nearby.off();   /* 자치구를 고르는 건 내 주변을 그만두겠다는 뜻이다 */
     state.gu = e.target.value;
     state.dong = '';
     rebuildDongSelect(state.gu);
@@ -494,18 +527,21 @@
   });
 
   document.getElementById('dongSelect').addEventListener('change', function (e) {
+    nearby.off();
     state.dong = e.target.value;
     render();
   });
 
   document.getElementById('sortSelect').addEventListener('change', function (e) {
     state.sort = e.target.value;
+    if (nearby.active()) return;   /* 내 주변일 때는 거리순을 유지한다 */
     sortListItems();
     renderedCount = PAGE_SIZE;
     renderList();
   });
 
   document.getElementById('filterResetBtn').addEventListener('click', function () {
+    nearby.off();
     ['priceMin', 'priceMax', 'areaMin', 'areaMax', 'ratioMin', 'ratioMax'].forEach(function (id) {
       document.getElementById(id).value = '';
     });

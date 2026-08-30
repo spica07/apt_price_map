@@ -6,7 +6,10 @@
  *
  * 콘텐츠를 크게 바꾸면 CACHE 버전 숫자를 올려서 옛 캐시를 비운다.
  */
-/* v10: 지도에 서울 초등학교 표시(토글 가능), 단지에서 가장 가까운
+/* v11: 지도·목록에 "내 주변"(현재 위치 기준 가까운 단지순 보기) 추가.
+   index.html/app.js/style.css가 바뀌었고, 다른 다있맵 지도들과 공유하는
+   assets/js/geo.js 파일이 새로 생겼다.
+   v10: 지도에 서울 초등학교 표시(토글 가능), 단지에서 가장 가까운
    초등학교를 팝업·상세 페이지에 표시(배정 학교와 다를 수 있다는 문구
    포함) 추가. index.html/app.js/detail.js/style.css와
    data.js(nearestSchool 필드) + 새 파일 assets/js/schools.js가 바뀌었다.
@@ -24,7 +27,7 @@
    data.js(재수집) + assets/data/deals/*.json가 바뀌었다.
    v5: 필터 접이식 전환 + 단지 목록 더보기. v4: 리포트 동별 초고가 표.
    v3: 검색·자치구·동 필터. v2: 가격·면적 필터와 단지 목록 패널. */
-const CACHE = 'apt-price-map-cache-v10';
+const CACHE = 'apt-price-map-cache-v11';
 
 /* data.js 는 일부러 뺐다 — 16.6MB라 addAll 이 실패하면 설치 자체가 무산된다.
    아래 stale-while-revalidate 가 첫 조회 때 알아서 캐시에 넣는다. */
@@ -38,6 +41,7 @@ const CORE_ASSETS = [
   'assets/js/report.js',
   'assets/js/detail.js',
   'assets/js/schools.js',
+  'assets/js/geo.js',
   'assets/icons/app-icon-192.png',
   'assets/icons/app-icon-512.png',
   'assets/icons/app-icon-apple-180.png',

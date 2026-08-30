@@ -230,7 +230,8 @@ body {
 .filter-reset { min-height: 36px; padding: 0 12px; font-size: var(--fs-s); margin-left: auto; }
 
 /* ---------- 지도/목록 보기 전환 (모바일 전용 — 900px부터는 나란히 보여 필요 없다) ---------- */
-.view-toggle { display: inline-flex; margin-top: 10px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--panel); }
+.view-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.view-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--panel); }
 .view-toggle .pill { border: none; border-radius: 0; }
 .view-toggle .pill + .pill { box-shadow: inset 1px 0 0 var(--line); }
 
@@ -295,6 +296,7 @@ body {
 .complex-card:hover { border-color: var(--sign); background: var(--sign-wash); }
 .cc-name { font-size: var(--fs-base); font-weight: 600; color: var(--ink); }
 .cc-meta { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
+.cc-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 .cc-price { font-size: var(--fs-m); font-weight: 600; color: var(--sign); margin-top: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
 .cc-sub { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
 .cc-ratio { font-size: var(--fs-s); color: var(--ink-muted); margin-top: 2px; }
@@ -447,6 +449,42 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- 내 주변 (geo.js) ---------- */
+/* 위치를 묻는 동안 — 브라우저 팝업이 떠 있는 시간이라 몇 초씩 걸린다.
+   버튼이 눌리지 않는 이유를 색으로 알린다. */
+.nearby-btn:disabled { opacity: .55; cursor: default; }
+
+/* 기본 태그는 무채색. 정보를 나르는 것만 색을 갖는다. */
+.tag {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  font-size: var(--fs-s);
+  font-weight: 500;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+/* 거리는 내 주변 모드에서만 붙고, 그 화면에서 가장 먼저 읽는 값이다. */
+.tag.dist {
+  border-color: var(--sign);
+  background: var(--sign-wash);
+  color: var(--sign);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* 지도 위에 띄우지 않는다 — 모바일 기본이 목록 뷰라, 거기서 권한 안내를
+   못 보면 사용자는 버튼이 고장 난 줄 안다. */
+.nearby-notice {
+  margin-top: 8px;
+  font-size: var(--fs-s);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+.nearby-notice[hidden] { display: none; }
 
 /* ---------- 리포트 페이지 ---------- */
 .report-h {
