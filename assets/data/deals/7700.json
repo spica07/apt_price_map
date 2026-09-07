@@ -1,1 +1,1 @@
-{"sale":[],"jeonse":[{"date":"20250308","deposit":40000,"rent":0,"area":69.89,"floor":4,"renewed":false},{"date":"20250308","deposit":40000,"rent":0,"area":69.89,"floor":4,"renewed":false}],"wolse":[{"date":"20251223","deposit":25000,"rent":100,"area":84.93,"floor":4,"renewed":false}]}
+{"sale":[{"date":"20251120","price":134500,"area":101.36,"floor":5}],"jeonse":[{"date":"20250102","deposit":50000,"rent":0,"area":84.96,"floor":1,"renewed":false},{"date":"20250102","deposit":50000,"rent":0,"area":84.96,"floor":1,"renewed":false}],"wolse":[]}
